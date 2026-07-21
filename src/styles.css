@@ -977,24 +977,48 @@ body {
   }
   .mobile-camp-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto 44px;
+    grid-template-columns: minmax(0, 1fr) minmax(86px, auto) 48px;
     gap: 8px;
     padding: 10px 12px 0;
+    align-items: stretch;
   }
   .mobile-camp-controls select {
     min-width: 0;
-    min-height: 44px;
+    min-height: 48px;
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 10px;
     background: white;
     padding: 0 10px;
   }
   .mobile-camp-controls button {
-    min-height: 44px;
+    min-height: 48px;
+  }
+  .mobile-camp-controls .secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 86px;
+    padding: 0 13px;
+    border-color: #ff8d88;
+    border-radius: 10px;
+    background: #fff8f7;
+    color: #df1712;
+    font-size: 14px;
+    line-height: 1;
+    box-shadow: 0 3px 10px #eb171214;
+    white-space: nowrap;
+  }
+  .mobile-camp-controls .secondary svg {
+    flex: 0 0 auto;
+  }
+  .mobile-camp-controls .secondary:hover {
+    border-color: #eb1712;
+    background: #fff0ef;
   }
   .mobile-delete {
     border: 1px solid #e4b9b0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #fff5f2;
     color: #ad4f43;
     display: grid;
