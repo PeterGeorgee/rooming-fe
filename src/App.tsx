@@ -29,6 +29,7 @@ export default function App() {
       "camp" | "room" | "import" | "groups" | "assignRooms" | null
     >(null),
     [q, setQ] = useState("");
+  const [leaderEdit, setLeaderEdit] = useState<Dashboard["rooms"][number] | null>(null);
   const load = async (id = campId) => {
     if (!id) return;
     setBusy(true);
@@ -270,22 +271,7 @@ export default function App() {
                       }),
                     )
                   }
-                  leader={(roomId, current) => {
-                    const entered = window.prompt(
-                      current
-                        ? "Change leader name, or leave blank to remove the leader"
-                        : "Leader name",
-                      current || "",
-                    );
-                    if (entered === null) return;
-                    const name = entered.trim();
-                    act(() =>
-                      request(`/rooms/${roomId}/leader`, {
-                        method: "PATCH",
-                        body: JSON.stringify({ name }),
-                      }),
-                    );
-                  }}
+                  leader={setLeaderEdit}
                 />
               )}{" "}
               {view === "Discussion groups" && (
@@ -351,12 +337,84 @@ export default function App() {
           }}
         />
       )}
+      {leaderEdit && data && (
+        <RoomLeaderModal
+          room={leaderEdit}
+          rooms={data.rooms}
+          close={() => setLeaderEdit(null)}
+          save={async (name, sleepRoomId) => {
+            await act(() =>
+              request(`/rooms/${leaderEdit.id}/leader`, {
+                method: "PATCH",
+                body: JSON.stringify({ name, sleepRoomId }),
+              }),
+            );
+            setLeaderEdit(null);
+          }}
+        />
+      )}
       {busy && (
         <div className="loading">
           <RefreshCw className="spin" />
           Saving changes...
         </div>
       )}
+    </div>
+  );
+}
+function RoomLeaderModal({
+  room,
+  rooms,
+  close,
+  save,
+}: {
+  room: Dashboard["rooms"][number];
+  rooms: Dashboard["rooms"];
+  close: () => void;
+  save: (name: string, sleepRoomId?: string) => Promise<void>;
+}) {
+  const [name, setName] = useState(room.leaderName || "");
+  const [sleepRoomId, setSleepRoomId] = useState(
+    room.leaderSleepRoomId || room.id,
+  );
+  const eligible = rooms.filter((candidate) => candidate.gender === room.gender);
+  return (
+    <div className="backdrop" onMouseDown={close}>
+      <form
+        className="modal"
+        onMouseDown={(event) => event.stopPropagation()}
+        onSubmit={(event) => {
+          event.preventDefault();
+          save(name.trim(), name.trim() ? sleepRoomId : undefined);
+        }}
+      >
+        <button type="button" className="close" onClick={close}>
+          <X />
+        </button>
+        <h2>{room.leaderName ? "Change room leader" : "Assign room leader"}</h2>
+        <p className="modalintro">
+          This leader is responsible for {room.name}. Choose separately where
+          they will sleep.
+        </p>
+        <label>
+          Leader name
+          <input autoFocus placeholder="Enter leader name" value={name} onChange={(event) => setName(event.target.value)} />
+        </label>
+        {name.trim() && (
+          <label>
+            Sleeping room
+            <select required value={sleepRoomId} onChange={(event) => setSleepRoomId(event.target.value)}>
+              {eligible.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name} ({candidate.occupancy}/{candidate.capacity})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {room.leaderName && <small>Clear the leader name and save to remove this leader.</small>}
+        <button className="primary">Save leader</button>
+      </form>
     </div>
   );
 }
@@ -613,7 +671,7 @@ function Rooms({
   rename: (id: string, current: string) => void;
   remove: (id: string, name: string) => void;
   move: (id: string, rid: string) => void;
-  leader: (id: string, current?: string) => void;
+  leader: (room: Dashboard["rooms"][number]) => void;
 }) {
   return (
     <>
@@ -636,12 +694,14 @@ function Rooms({
                 {r.leaderName && (
                   <p>
                     <b>Leader: {r.leaderName}</b>
+                    <br />
+                    Sleeps in {r.leaderSleepRoom}
                   </p>
                 )}
                 <div className="roomactions">
                   <button
                     className="rename"
-                    onClick={() => leader(r.id, r.leaderName)}
+                    onClick={() => leader(r)}
                   >
                     {r.leaderName ? "Change leader" : "Assign leader"}
                   </button>
