@@ -215,7 +215,6 @@ export default function App() {
                       }),
                     )
                   }
-                  assign={() => setModal("assignRooms")}
                 />
               )}{" "}
               {view === "Campers" && (
@@ -271,6 +270,29 @@ export default function App() {
                       }),
                     )
                   }
+                  leader={(roomId, current) => {
+                    const entered = window.prompt(
+                      current
+                        ? "Change leader name, or leave blank to remove the leader"
+                        : "Leader name",
+                      current || "",
+                    );
+                    if (entered === null) return;
+                    const name = entered.trim();
+                    const leaders = data.rooms
+                      .filter((room) => room.id !== roomId && room.leaderName)
+                      .map((room) => ({
+                        roomId: room.id,
+                        name: room.leaderName,
+                      }));
+                    if (name) leaders.push({ roomId, name });
+                    act(() =>
+                      request(`/camps/${campId}/assign/rooms`, {
+                        method: "POST",
+                        body: JSON.stringify({ leaders }),
+                      }),
+                    );
+                  }}
                 />
               )}{" "}
               {view === "Discussion groups" && (
@@ -372,12 +394,10 @@ function Overview({
   d,
   busy,
   generate,
-  assign,
 }: {
   d: Dashboard;
   busy: boolean;
   generate: () => void;
-  assign: () => void;
 }) {
   const generated = d.campers.some((camper) => camper.roomId);
   return (
@@ -429,13 +449,6 @@ function Overview({
             <p>Generate rooms first, then assign leaders by gender</p>
           </div>
           <div className="assignmentactions">
-            <button
-              className="secondary"
-              disabled={busy || !generated}
-              onClick={assign}
-            >
-              Assign leaders
-            </button>
             <button className="primary" disabled={busy} onClick={generate}>
               <Shuffle size={15} />
               {generated ? "Regenerate rooms" : "Generate rooms"}
@@ -600,12 +613,14 @@ function Rooms({
   rename,
   remove,
   move,
+  leader,
 }: {
   d: Dashboard;
   add: () => void;
   rename: (id: string, current: string) => void;
   remove: (id: string, name: string) => void;
   move: (id: string, rid: string) => void;
+  leader: (id: string, current?: string) => void;
 }) {
   return (
     <>
@@ -631,6 +646,12 @@ function Rooms({
                   </p>
                 )}
                 <div className="roomactions">
+                  <button
+                    className="rename"
+                    onClick={() => leader(r.id, r.leaderName)}
+                  >
+                    {r.leaderName ? "Change leader" : "Assign leader"}
+                  </button>
                   <button
                     className="rename"
                     onClick={() => rename(r.id, r.name)}
