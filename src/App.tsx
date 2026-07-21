@@ -264,7 +264,7 @@ export default function App() {
                   }}
                   move={(camper, roomId) =>
                     act(() =>
-                      request(`/campers/${camper}`, {
+                      request(`/campers/${camper}/assignment`, {
                         method: "PATCH",
                         body: JSON.stringify({ roomId }),
                       }),
@@ -279,17 +279,10 @@ export default function App() {
                     );
                     if (entered === null) return;
                     const name = entered.trim();
-                    const leaders = data.rooms
-                      .filter((room) => room.id !== roomId && room.leaderName)
-                      .map((room) => ({
-                        roomId: room.id,
-                        name: room.leaderName,
-                      }));
-                    if (name) leaders.push({ roomId, name });
                     act(() =>
-                      request(`/camps/${campId}/assign/rooms`, {
-                        method: "POST",
-                        body: JSON.stringify({ leaders }),
+                      request(`/rooms/${roomId}/leader`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ name }),
                       }),
                     );
                   }}
