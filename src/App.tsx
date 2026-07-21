@@ -30,6 +30,7 @@ export default function App() {
     >(null),
     [q, setQ] = useState("");
   const [leaderEdit, setLeaderEdit] = useState<Dashboard["rooms"][number] | null>(null);
+  const [groupLeaderEdit, setGroupLeaderEdit] = useState<Dashboard["groups"][number] | null>(null);
   const load = async (id = campId) => {
     if (!id) return;
     setBusy(true);
@@ -275,7 +276,7 @@ export default function App() {
                 />
               )}{" "}
               {view === "Discussion groups" && (
-                <Groups d={data} generate={() => setModal("groups")} />
+                <Groups d={data} generate={() => setModal("groups")} editLeaders={setGroupLeaderEdit} />
               )}{" "}
               {view === "Review" && (
                 <Review
@@ -342,14 +343,24 @@ export default function App() {
           room={leaderEdit}
           rooms={data.rooms}
           close={() => setLeaderEdit(null)}
-          save={async (name, sleepRoomId) => {
+          save={async (leaders) => {
             await act(() =>
-              request(`/rooms/${leaderEdit.id}/leader`, {
-                method: "PATCH",
-                body: JSON.stringify({ name, sleepRoomId }),
+              request(`/rooms/${leaderEdit.id}/leaders`, {
+                method: "PUT",
+                body: JSON.stringify({ leaders }),
               }),
             );
             setLeaderEdit(null);
+          }}
+        />
+      )}
+      {groupLeaderEdit && (
+        <GroupLeaderModal
+          group={groupLeaderEdit}
+          close={() => setGroupLeaderEdit(null)}
+          save={async (leaders) => {
+            await act(() => request(`/groups/${groupLeaderEdit.id}/leaders`, { method: "PUT", body: JSON.stringify({ leaders }) }));
+            setGroupLeaderEdit(null);
           }}
         />
       )}
@@ -371,11 +382,10 @@ function RoomLeaderModal({
   room: Dashboard["rooms"][number];
   rooms: Dashboard["rooms"];
   close: () => void;
-  save: (name: string, sleepRoomId?: string) => Promise<void>;
+  save: (leaders: { name: string; sleepRoomId: string }[]) => Promise<void>;
 }) {
-  const [name, setName] = useState(room.leaderName || "");
-  const [sleepRoomId, setSleepRoomId] = useState(
-    room.leaderSleepRoomId || room.id,
+  const [leaders, setLeaders] = useState(
+    room.leaders.map((leader) => ({ name: leader.name, sleepRoomId: leader.sleepRoomId || room.id })),
   );
   const eligible = rooms.filter((candidate) => candidate.gender === room.gender);
   return (
@@ -385,38 +395,38 @@ function RoomLeaderModal({
         onMouseDown={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault();
-          save(name.trim(), name.trim() ? sleepRoomId : undefined);
+          save(leaders.map((leader) => ({ ...leader, name: leader.name.trim() })));
         }}
       >
         <button type="button" className="close" onClick={close}>
           <X />
         </button>
-        <h2>{room.leaderName ? "Change room leader" : "Assign room leader"}</h2>
+        <h2>Room leaders</h2>
         <p className="modalintro">
-          This leader is responsible for {room.name}. Choose separately where
-          they will sleep.
+          Add everyone responsible for {room.name} and choose where each leader sleeps.
         </p>
-        <label>
-          Leader name
-          <input autoFocus placeholder="Enter leader name" value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
-        {name.trim() && (
-          <label>
-            Sleeping room
-            <select required value={sleepRoomId} onChange={(event) => setSleepRoomId(event.target.value)}>
+        {leaders.map((leader, index) => (
+          <div className="leaderrow roomleaderrow" key={index}>
+            <input required placeholder={`Leader ${index + 1} name`} value={leader.name} onChange={(event) => { const next=[...leaders]; next[index]={...leader,name:event.target.value}; setLeaders(next); }} />
+            <select required value={leader.sleepRoomId} onChange={(event) => { const next=[...leaders]; next[index]={...leader,sleepRoomId:event.target.value}; setLeaders(next); }}>
               {eligible.map((candidate) => (
                 <option key={candidate.id} value={candidate.id}>
                   {candidate.name} ({candidate.occupancy}/{candidate.capacity})
                 </option>
               ))}
             </select>
-          </label>
-        )}
-        {room.leaderName && <small>Clear the leader name and save to remove this leader.</small>}
-        <button className="primary">Save leader</button>
+            <button type="button" className="removeroom" onClick={() => setLeaders(leaders.filter((_, i) => i !== index))}><Trash2 size={14}/>Remove</button>
+          </div>
+        ))}
+        <button type="button" className="secondary" onClick={() => setLeaders([...leaders,{name:"",sleepRoomId:eligible[0]?.id||""}])}><Plus size={14}/>Add leader</button>
+        <button className="primary">Save leaders</button>
       </form>
     </div>
   );
+}
+function GroupLeaderModal({group,close,save}:{group:Dashboard["groups"][number];close:()=>void;save:(leaders:string[])=>Promise<void>}) {
+  const [leaders,setLeaders]=useState(group.leaders);
+  return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(leaders.map(x=>x.trim()))}}><button type="button" className="close" onClick={close}><X/></button><h2>Group leaders</h2><p className="modalintro">Add one or more leaders for {group.name}.</p>{leaders.map((leader,index)=><div className="leaderrow" key={index}><input required placeholder={`Leader ${index+1} name`} value={leader} onChange={e=>{const next=[...leaders];next[index]=e.target.value;setLeaders(next)}}/><button type="button" className="removeroom" onClick={()=>setLeaders(leaders.filter((_,i)=>i!==index))}><Trash2 size={14}/>Remove</button></div>)}<button type="button" className="secondary" onClick={()=>setLeaders([...leaders,""])}><Plus size={14}/>Add leader</button><button className="primary">Save leaders</button></form></div>;
 }
 function Avatar({ c }: { c: Camper }) {
   return (
@@ -543,7 +553,7 @@ function RoomTable({ rooms }: { rooms: Dashboard["rooms"] }) {
             <b>{r.name}</b>
             <small>
               {r.gender === "FEMALE" ? "Girls" : "Boys"}
-              {r.leaderName ? ` | Leader: ${r.leaderName}` : ""}
+              {r.leaders.length ? ` | Leaders: ${r.leaders.map((leader) => leader.name).join(", ")}` : ""}
             </small>
           </div>
           <div>
@@ -691,11 +701,9 @@ function Rooms({
                   {r.gender === "FEMALE" ? "Girls" : "Boys"} | {r.occupancy}/
                   {r.capacity}
                 </p>
-                {r.leaderName && (
+                {r.leaders.length > 0 && (
                   <p>
-                    <b>Leader: {r.leaderName}</b>
-                    <br />
-                    Sleeps in {r.leaderSleepRoom}
+                    <b>Leaders:</b> {r.leaders.map((leader) => `${leader.name} (sleeps in ${leader.sleepRoom})`).join(", ")}
                   </p>
                 )}
                 <div className="roomactions">
@@ -703,7 +711,7 @@ function Rooms({
                     className="rename"
                     onClick={() => leader(r)}
                   >
-                    {r.leaderName ? "Change leader" : "Assign leader"}
+                    {r.leaders.length ? "Change leaders" : "Assign leaders"}
                   </button>
                   <button
                     className="rename"
@@ -751,7 +759,7 @@ function Rooms({
     </>
   );
 }
-function Groups({ d, generate }: { d: Dashboard; generate: () => void }) {
+function Groups({ d, generate, editLeaders }: { d: Dashboard; generate: () => void; editLeaders: (group: Dashboard["groups"][number]) => void }) {
   return (
     <>
       <div className="toolbar">
@@ -769,6 +777,8 @@ function Groups({ d, generate }: { d: Dashboard; generate: () => void }) {
                 <p>
                   {g.occupancy} campers | avg {g.averageAge}
                 </p>
+                {g.leaders.length > 0 && <p><b>Leaders:</b> {g.leaders.join(", ")}</p>}
+                <button className="rename" onClick={() => editLeaders(g)}>{g.leaders.length ? "Change leaders" : "Assign leaders"}</button>
               </div>
               <MessageCircle />
             </header>
@@ -875,12 +885,8 @@ function Modal({
       numberOfGroups: 6,
       membersPerGroup: null,
       genderSeparated: false,
-      girlLeaders: rooms
-        .filter((room) => room.gender === "FEMALE" && room.leaderName)
-        .map((room) => ({ name: room.leaderName, roomId: room.id })),
-      boyLeaders: rooms
-        .filter((room) => room.gender === "MALE" && room.leaderName)
-        .map((room) => ({ name: room.leaderName, roomId: room.id })),
+      girlLeaders: [],
+      boyLeaders: [],
     }),
     [file, setFile] = useState<File>();
   const setLeaderCount = (gender: "FEMALE" | "MALE", count: number) => {
