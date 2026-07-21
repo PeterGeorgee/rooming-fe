@@ -4,21 +4,20 @@ import {
   Home,
   Upload,
   Shuffle,
-  Search,
   FileDown,
   Plus,
   AlertTriangle,
   Heart,
-  LayoutDashboard,
   MessageCircle,
   RefreshCw,
   X,
   Trash2,
 } from "lucide-react";
 import { API, type Camp, type Camper, type Dashboard, type ImportResult, request } from "./api";
-type View =
-  "Overview" | "Campers" | "Rooms" | "Discussion groups" | "Review" | "Exports";
-type DialogState = { title: string; message: string; input?: string; confirmLabel?: string; cancelLabel?: string; resolve: (value: string | boolean | null) => void };
+import { Avatar } from "./components/Avatar";
+import { AppHeader } from "./components/AppHeader";
+import { AppDialog, NoticePopup, type DialogState } from "./components/Feedback";
+import { MobileCampControls, MobileNavigation, Sidebar, type View } from "./components/Navigation";
 export default function App() {
   const [camps, setCamps] = useState<Camp[]>([]),
     [campId, setCampId] = useState(""),
@@ -98,97 +97,10 @@ export default function App() {
   );
   return (
     <div className="app">
-      <aside>
-        <div className="logo">
-          <i>CK</i>
-          <span>
-            <b>CampKin</b>
-            <small>Rooming made human</small>
-          </span>
-        </div>
-        <label>
-          Current camp
-          <select value={campId} onChange={(e) => setCampId(e.target.value)}>
-            <option value="">Select a camp</option>
-            {camps.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="deletecamp" onClick={deleteCamp} disabled={!campId}>
-          <Trash2 size={15} />
-          Delete camp
-        </button>
-        {(
-          [
-            ["Overview", LayoutDashboard],
-            ["Campers", Users],
-            ["Rooms", Home],
-            ["Discussion groups", MessageCircle],
-            ["Review", AlertTriangle],
-            ["Exports", FileDown],
-          ] as const
-        ).map(([n, I]) => (
-          <button
-            className={view === n ? "on" : ""}
-            onClick={() => setView(n)}
-            key={n}
-          >
-            <I size={17} />
-            {n}
-          </button>
-        ))}
-        <button className="newcamp" onClick={() => setModal("camp")}>
-          <Plus size={16} />
-          New camp
-        </button>
-      </aside>
+      <Sidebar view={view} setView={setView} camps={camps} campId={campId} setCampId={setCampId} deleteCamp={deleteCamp} newCamp={()=>setModal("camp")}/>
       <main>
-        <header>
-          <div>
-            <small>{data?.camp.name || "CAMPKIN"}</small>
-            <h1>{view}</h1>
-          </div>
-          <div className="search">
-            <Search size={16} />
-            <input
-              placeholder="Search campers"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            {search && search.length > 0 && (
-              <div className="results">
-                {search.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setView("Campers");
-                      setQ(c.name);
-                    }}
-                  >
-                    <Avatar c={c} />
-                    <span>
-                      <b>{c.name}</b>
-                      <small>
-                        {c.room || "Unassigned"} | {c.group || "No group"}
-                      </small>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            className="primary"
-            onClick={() => setModal("import")}
-            disabled={!campId}
-          >
-            <Upload size={16} />
-            Import file
-          </button>
-        </header>
+        <AppHeader campName={data?.camp.name} view={view} query={q} setQuery={setQ} results={search||[]} selectCamper={(camper)=>{setView("Campers");setQ(camper.name)}} importFile={()=>setModal("import")} canImport={!!campId}/>
+        <MobileCampControls camps={camps} campId={campId} setCampId={setCampId} deleteCamp={deleteCamp} newCamp={()=>setModal("camp")}/>
         <section className="content">
           {!data ? (
             <Empty onCreate={() => setModal("camp")} />
@@ -281,6 +193,7 @@ export default function App() {
           )}
         </section>
       </main>
+      <MobileNavigation view={view} setView={setView}/>
       {modal && (
         <Modal
           type={modal}
@@ -372,14 +285,6 @@ export default function App() {
     </div>
   );
 }
-function AppDialog({ dialog, close }: { dialog: DialogState; close: (value: string | boolean | null) => void }) {
-  const [value, setValue] = useState(dialog.input || "");
-  const hasInput = dialog.input !== undefined;
-  return <div className="backdrop dialogbackdrop" onMouseDown={() => close(hasInput ? null : false)}><form className="modal alertmodal" onMouseDown={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); close(hasInput ? value : true); }}><button type="button" className="close" onClick={() => close(hasInput ? null : false)}><X /></button><span className="alerticon"><AlertTriangle /></span><h2>{dialog.title}</h2><p className="dialogmessage">{dialog.message}</p>{hasInput && <input autoFocus value={value} onChange={(event) => setValue(event.target.value)} />}<div className="dialogactions"><button type="button" className="secondary" onClick={() => close(hasInput ? null : false)}>{dialog.cancelLabel || "Cancel"}</button><button className="primary">{dialog.confirmLabel || "Confirm"}</button></div></form></div>;
-}
-function NoticePopup({ message, close }: { message: string; close: () => void }) {
-  return <div className="backdrop dialogbackdrop" onMouseDown={close}><div className="modal alertmodal" onMouseDown={(event) => event.stopPropagation()}><button type="button" className="close" onClick={close}><X /></button><span className="alerticon"><AlertTriangle /></span><h2>Something needs attention</h2><p className="dialogmessage">{message}</p><button className="primary" onClick={close}>Got it</button></div></div>;
-}
 function RoomLeaderModal({
   room,
   rooms,
@@ -434,16 +339,6 @@ function RoomLeaderModal({
 function GroupLeaderModal({group,close,save}:{group:Dashboard["groups"][number];close:()=>void;save:(leaders:string[])=>Promise<void>}) {
   const [leaders,setLeaders]=useState(group.leaders);
   return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(leaders.map(x=>x.trim()))}}><button type="button" className="close" onClick={close}><X/></button><h2>Group leaders</h2><p className="modalintro">Add one or more leaders for {group.name}.</p>{leaders.map((leader,index)=><div className="leaderrow" key={index}><input required placeholder={`Leader ${index+1} name`} value={leader} onChange={e=>{const next=[...leaders];next[index]=e.target.value;setLeaders(next)}}/><button type="button" className="removeroom" onClick={()=>setLeaders(leaders.filter((_,i)=>i!==index))}><Trash2 size={14}/>Remove</button></div>)}<button type="button" className="secondary" onClick={()=>setLeaders([...leaders,""])}><Plus size={14}/>Add leader</button><button className="primary">Save leaders</button></form></div>;
-}
-function Avatar({ c }: { c: Camper }) {
-  return (
-    <span className={"avatar " + (c.gender === "FEMALE" ? "pink" : "green")}>
-      {c.name
-        .split(" ")
-        .map((x) => x[0])
-        .slice(0, 2)}
-    </span>
-  );
 }
 function Empty({ onCreate }: { onCreate: () => void }) {
   return (
