@@ -1,11 +1,11 @@
-# CampKin Frontend
+# Vault HQ Frontend
 
-React and TypeScript organizer interface for the CampKin API.
+React and TypeScript camp organizer interface for Vault HQ.
 
 ## Requirements
 
 - Node.js 20+
-- The CampKin backend running locally
+- The Vault HQ backend running locally
 
 ## Configure
 

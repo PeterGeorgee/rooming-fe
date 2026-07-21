@@ -343,7 +343,7 @@ function GroupLeaderModal({group,close,save}:{group:Dashboard["groups"][number];
 function Empty({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="empty">
-      <span>CK</span>
+      <img className="emptylogo" src="/vault-hq-logo.png" alt="Vault HQ" />
       <h2>Start your first camp</h2>
       <p>Create a camp, configure rooms, then import your Excel camper list.</p>
       <button className="primary" onClick={onCreate}>

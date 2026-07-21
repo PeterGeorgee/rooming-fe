@@ -1,11 +1,11 @@
 :root {
   font-family: Inter, system-ui, sans-serif;
-  color: #17312f;
-  background: #f5f6f2;
-  --teal: #1d625d;
-  --dark: #153d39;
-  --line: #e3e8e3;
-  --coral: #e67862;
+  color: #171a1f;
+  background: #f6f5f2;
+  --teal: #eb1712;
+  --dark: #171a1f;
+  --line: #e5e2dd;
+  --coral: #eb1712;
 }
 * {
   box-sizing: border-box;
@@ -1122,4 +1122,115 @@ body {
   .exportgrid a {
     padding: 18px;
   }
+}
+
+/* Vault HQ brand system */
+body {
+  background: #f6f5f2;
+  color: #171a1f;
+}
+.sidebar {
+  background: #ffffff;
+  color: #62666b;
+  border-right: 1px solid #e5e2dd;
+  box-shadow: 8px 0 30px #171a1f0a;
+}
+.logo {
+  padding: 4px 5px 24px;
+}
+.logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.sidebar label {
+  color: #777b80;
+}
+.app > aside select {
+  background: #f6f5f2;
+  color: #171a1f;
+  border-color: #ddd9d2;
+}
+.sidebar nav button {
+  color: #555a60;
+}
+.sidebar nav button.on,
+.sidebar nav button:hover {
+  background: #fff0ef;
+  color: #d91410;
+}
+.app > aside .newcamp {
+  border-color: #efaaa7;
+  color: #d91410;
+}
+.app > aside .deletecamp {
+  color: #a7423e;
+  border-color: #efcfcc;
+}
+main > header {
+  border-bottom-color: #e5e2dd;
+}
+main > header small {
+  color: #eb1712;
+  font-weight: 800;
+}
+.primary {
+  background: #eb1712;
+  box-shadow: 0 5px 14px #eb171226;
+}
+.primary:hover {
+  background: #cc100c;
+}
+.secondary,
+.rename {
+  color: #d91410;
+  border-color: #efaaa7;
+}
+.score b,
+.roomcard > header > svg,
+.exportgrid a > svg:last-child {
+  color: #eb1712;
+}
+.stat i,
+.roomicon,
+.exportgrid a > svg:first-child {
+  background: #fff0ef;
+  color: #d91410;
+}
+progress {
+  accent-color: #eb1712;
+}
+.roomcard > header,
+th {
+  background: #fbfaf8;
+}
+.avatar.green {
+  background: #e9e9e7;
+  color: #34383d;
+}
+.avatar.pink {
+  background: #ffe0dd;
+  color: #a52d28;
+}
+.drop {
+  border-color: #efaaa7;
+  background: #fff8f7;
+}
+.loading,
+.mobile-nav {
+  background: #171a1f;
+}
+.mobile-nav button.on {
+  background: #eb1712;
+  color: white;
+}
+.alerticon {
+  background: #fff0ef;
+  color: #d91410;
+}
+.emptylogo {
+  display: block;
+  width: min(280px, 80%);
+  height: auto;
+  margin: 0 auto 18px;
 }
