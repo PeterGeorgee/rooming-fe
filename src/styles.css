@@ -391,8 +391,18 @@ progress {
 }
 .cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(320px, calc((100% - 30px) / 3));
   gap: 15px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline proximity;
+  scrollbar-gutter: stable;
+  padding-bottom: 12px;
+}
+.cards > .roomcard {
+  scroll-snap-align: start;
 }
 .roomcard {
   overflow: hidden;
@@ -728,7 +738,7 @@ td:first-child {
     grid-template-columns: 1fr 1fr;
   }
   .cards {
-    grid-template-columns: 1fr 1fr;
+    grid-auto-columns: minmax(300px, calc((100% - 15px) / 2));
   }
 }
 @media (max-width: 760px) {
@@ -763,10 +773,12 @@ td:first-child {
   .content {
     padding: 20px 14px;
   }
-  .cards,
   .stats,
   .exportgrid {
     grid-template-columns: 1fr;
+  }
+  .cards {
+    grid-auto-columns: minmax(280px, 92%);
   }
   .room {
     grid-template-columns: 35px 1fr 0.8fr;
