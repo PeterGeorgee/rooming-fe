@@ -1234,3 +1234,64 @@ th {
   height: auto;
   margin: 0 auto 18px;
 }
+
+/* Brighter Vault HQ sidebar */
+.app > aside.sidebar {
+  background: #22262d;
+  color: #f7f8fa;
+  border-right-color: #343941;
+  box-shadow: 10px 0 32px #171a1f1f;
+}
+.sidebar .logo {
+  filter: drop-shadow(0 8px 18px #0000002e);
+}
+.sidebar label {
+  color: #b9bec7;
+}
+.app > aside.sidebar select {
+  background: #ffffff;
+  color: #22262d;
+  border-color: #dedbd7;
+  box-shadow: 0 4px 14px #0000001f;
+}
+.sidebar nav button {
+  color: #c7ccd4;
+}
+.sidebar nav button svg {
+  color: #aeb5bf;
+}
+.sidebar nav button:hover {
+  background: #343941;
+  color: #ffffff;
+}
+.sidebar nav button:hover svg {
+  color: #ff5a54;
+}
+.sidebar nav button.on {
+  background: #fff1f0;
+  color: #dc1510;
+  box-shadow: 0 6px 18px #0000001f;
+}
+.sidebar nav button.on svg {
+  color: #ee1b16;
+}
+.app > aside.sidebar .deletecamp {
+  color: #ff8580;
+  border-color: #b75c59;
+  background: #2b2529;
+}
+.app > aside.sidebar .deletecamp:hover:not(:disabled) {
+  color: #ffffff;
+  background: #c92d28;
+  border-color: #ff7772;
+}
+.app > aside.sidebar .newcamp {
+  color: #ff514b;
+  border-color: #ff7772;
+  background: #29252a;
+}
+.app > aside.sidebar .newcamp:hover {
+  color: #ffffff;
+  background: #e91d18;
+  border-color: #ff514b;
+}
