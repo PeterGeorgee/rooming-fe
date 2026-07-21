@@ -632,7 +632,7 @@ function Rooms({
       </div>
       <div className="cards">
         {d.rooms.map((r) => (
-          <article className="roomcard" key={r.id}>
+          <article className="roomcard scrollable" key={r.id}>
             <header>
               <div>
                 <h3>{r.name}</h3>
@@ -669,27 +669,29 @@ function Rooms({
               </div>
               <Home />
             </header>
-            {r.campers.map((c) => (
-              <div className="person" key={c.id}>
-                <Avatar c={c} />
-                <span>
-                  <b>{c.name}</b>
-                  <small>Age {c.age}</small>
-                </span>
-                <select
-                  value={r.id}
-                  onChange={(e) => move(c.id, e.target.value)}
-                >
-                  {d.rooms
-                    .filter((x) => x.gender === r.gender)
-                    .map((x) => (
-                      <option value={x.id} key={x.id}>
-                        {x.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            ))}
+            <div className="roommembers">
+              {r.campers.map((c) => (
+                <div className="person" key={c.id}>
+                  <Avatar c={c} />
+                  <span>
+                    <b>{c.name}</b>
+                    <small>Age {c.age}</small>
+                  </span>
+                  <select
+                    value={r.id}
+                    onChange={(e) => move(c.id, e.target.value)}
+                  >
+                    {d.rooms
+                      .filter((x) => x.gender === r.gender)
+                      .map((x) => (
+                        <option value={x.id} key={x.id}>
+                          {x.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              ))}
+            </div>
           </article>
         ))}
       </div>
