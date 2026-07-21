@@ -18,6 +18,7 @@ import {
 import { API, type Camp, type Camper, type Dashboard, type ImportResult, request } from "./api";
 type View =
   "Overview" | "Campers" | "Rooms" | "Discussion groups" | "Review" | "Exports";
+type DialogState = { title: string; message: string; input?: string; confirmLabel?: string; cancelLabel?: string; resolve: (value: string | boolean | null) => void };
 export default function App() {
   const [camps, setCamps] = useState<Camp[]>([]),
     [campId, setCampId] = useState(""),
@@ -31,6 +32,9 @@ export default function App() {
     [q, setQ] = useState("");
   const [leaderEdit, setLeaderEdit] = useState<Dashboard["rooms"][number] | null>(null);
   const [groupLeaderEdit, setGroupLeaderEdit] = useState<Dashboard["groups"][number] | null>(null);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
+  const confirmPopup = (title: string, message: string, confirmLabel = "Confirm", cancelLabel = "Cancel") => new Promise<boolean>((resolve) => setDialog({ title, message, confirmLabel, cancelLabel, resolve: (value) => resolve(value === true) }));
+  const promptPopup = (title: string, message: string, input: string) => new Promise<string | null>((resolve) => setDialog({ title, message, input, confirmLabel: "Save", cancelLabel: "Cancel", resolve: (value) => resolve(typeof value === "string" ? value : null) }));
   const load = async (id = campId) => {
     if (!id) return;
     setBusy(true);
@@ -68,13 +72,7 @@ export default function App() {
   };
   const deleteCamp = async () => {
     const selected = camps.find((c) => c.id === campId);
-    if (
-      !selected ||
-      !window.confirm(
-        `Delete ${selected.name}? This permanently removes its campers, rooms, groups and assignments.`,
-      )
-    )
-      return;
+    if (!selected || !(await confirmPopup("Delete camp", `Delete ${selected.name}? This permanently removes its campers, rooms, groups and assignments.`, "Delete camp"))) return;
     setBusy(true);
     try {
       await request<void>(`/camps/${campId}`, { method: "DELETE" });
@@ -191,15 +189,6 @@ export default function App() {
             Import file
           </button>
         </header>
-        {error && (
-          <div className="error">
-            <AlertTriangle size={16} />
-            {error}
-            <button onClick={() => setError("")}>
-              <X size={14} />
-            </button>
-          </div>
-        )}
         <section className="content">
           {!data ? (
             <Empty onCreate={() => setModal("camp")} />
@@ -244,8 +233,8 @@ export default function App() {
                 <Rooms
                   d={data}
                   add={() => setModal("room")}
-                  rename={(roomId, current) => {
-                    const name = window.prompt("Room name", current)?.trim();
+                  rename={async (roomId, current) => {
+                    const name = (await promptPopup("Rename room", "Enter the new room name.", current))?.trim();
                     if (name && name !== current)
                       act(() =>
                         request(`/rooms/${roomId}`, {
@@ -254,12 +243,8 @@ export default function App() {
                         }),
                       );
                   }}
-                  remove={(roomId, name) => {
-                    if (
-                      window.confirm(
-                        `Delete ${name}? Campers in this room will become unassigned.`,
-                      )
-                    )
+                  remove={async (roomId, name) => {
+                    if (await confirmPopup("Delete room", `Delete ${name}? Campers in this room will become unassigned.`, "Delete room"))
                       act(() =>
                         request(`/rooms/${roomId}`, { method: "DELETE" }),
                       );
@@ -337,8 +322,11 @@ export default function App() {
             });
             setModal(null);
             if (imported && imported.added > 0 && imported.existingAssignments) {
-              const regenerate = window.confirm(
-                `${imported.added} new camper${imported.added === 1 ? " was" : "s were"} added without duplicates.\n\nPress OK to regenerate all room assignments.\nPress Cancel to keep existing rooms and assign the new campers manually.`,
+              const regenerate = await confirmPopup(
+                "New campers imported",
+                `${imported.added} new camper${imported.added === 1 ? " was" : "s were"} added without duplicates. Choose how to handle room assignments.`,
+                "Regenerate all rooms",
+                "Assign new campers manually",
               );
               if (regenerate)
                 await act(() => request(`/camps/${campId}/assign/rooms`, { method: "POST", body: JSON.stringify({ leaders: [] }) }));
@@ -373,6 +361,8 @@ export default function App() {
           }}
         />
       )}
+      {error && <NoticePopup message={error} close={() => setError("")} />}
+      {dialog && <AppDialog dialog={dialog} close={(value) => { dialog.resolve(value); setDialog(null); }} />}
       {busy && (
         <div className="loading">
           <RefreshCw className="spin" />
@@ -381,6 +371,14 @@ export default function App() {
       )}
     </div>
   );
+}
+function AppDialog({ dialog, close }: { dialog: DialogState; close: (value: string | boolean | null) => void }) {
+  const [value, setValue] = useState(dialog.input || "");
+  const hasInput = dialog.input !== undefined;
+  return <div className="backdrop dialogbackdrop" onMouseDown={() => close(hasInput ? null : false)}><form className="modal alertmodal" onMouseDown={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); close(hasInput ? value : true); }}><button type="button" className="close" onClick={() => close(hasInput ? null : false)}><X /></button><span className="alerticon"><AlertTriangle /></span><h2>{dialog.title}</h2><p className="dialogmessage">{dialog.message}</p>{hasInput && <input autoFocus value={value} onChange={(event) => setValue(event.target.value)} />}<div className="dialogactions"><button type="button" className="secondary" onClick={() => close(hasInput ? null : false)}>{dialog.cancelLabel || "Cancel"}</button><button className="primary">{dialog.confirmLabel || "Confirm"}</button></div></form></div>;
+}
+function NoticePopup({ message, close }: { message: string; close: () => void }) {
+  return <div className="backdrop dialogbackdrop" onMouseDown={close}><div className="modal alertmodal" onMouseDown={(event) => event.stopPropagation()}><button type="button" className="close" onClick={close}><X /></button><span className="alerticon"><AlertTriangle /></span><h2>Something needs attention</h2><p className="dialogmessage">{message}</p><button className="primary" onClick={close}>Got it</button></div></div>;
 }
 function RoomLeaderModal({
   room,

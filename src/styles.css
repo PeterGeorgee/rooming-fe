@@ -633,6 +633,36 @@ td:first-child {
   color: #687875;
   font-size: 11px;
 }
+.dialogbackdrop {
+  z-index: 60;
+}
+.alertmodal {
+  width: min(430px, 100%);
+  text-align: center;
+  align-items: stretch;
+}
+.alerticon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #fff1ea;
+  color: #b45440;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+}
+.dialogmessage {
+  margin: 0;
+  color: #687875;
+  white-space: pre-line;
+  line-height: 1.55;
+}
+.dialogactions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 5px;
+}
 .leadersection {
   border: 1px solid var(--line);
   border-radius: 9px;
