@@ -15,7 +15,7 @@ import {
   X,
   Trash2,
 } from "lucide-react";
-import { API, type Camp, type Camper, type Dashboard, request } from "./api";
+import { API, type Camp, type Camper, type Dashboard, type ImportResult, request } from "./api";
 type View =
   "Overview" | "Campers" | "Rooms" | "Discussion groups" | "Review" | "Exports";
 export default function App() {
@@ -302,6 +302,7 @@ export default function App() {
           rooms={data?.rooms || []}
           close={() => setModal(null)}
           submit={async (body) => {
+            let imported: ImportResult | undefined;
             await act(async () => {
               if (modal === "camp") {
                 const c = await request<Camp>("/camps", {
@@ -328,13 +329,21 @@ export default function App() {
               else {
                 const f = new FormData();
                 f.append("file", body as File);
-                await request(`/camps/${campId}/import`, {
+                imported = await request<ImportResult>(`/camps/${campId}/import`, {
                   method: "POST",
                   body: f,
                 });
               }
             });
             setModal(null);
+            if (imported && imported.added > 0 && imported.existingAssignments) {
+              const regenerate = window.confirm(
+                `${imported.added} new camper${imported.added === 1 ? " was" : "s were"} added without duplicates.\n\nPress OK to regenerate all room assignments.\nPress Cancel to keep existing rooms and assign the new campers manually.`,
+              );
+              if (regenerate)
+                await act(() => request(`/camps/${campId}/assign/rooms`, { method: "POST", body: JSON.stringify({ leaders: [] }) }));
+              else setView("Rooms");
+            }
           }}
         />
       )}
@@ -683,6 +692,7 @@ function Rooms({
   move: (id: string, rid: string) => void;
   leader: (room: Dashboard["rooms"][number]) => void;
 }) {
+  const unassigned = d.campers.filter((camper) => !camper.roomId);
   return (
     <>
       <div className="toolbar">
@@ -692,6 +702,31 @@ function Rooms({
         </button>
       </div>
       <div className="cards">
+        {unassigned.length > 0 && (
+          <article className="roomcard scrollable unassignedcard">
+            <header>
+              <div>
+                <h3>Unassigned campers</h3>
+                <p>{unassigned.length} waiting for manual room assignment</p>
+              </div>
+              <Users />
+            </header>
+            <div className="roommembers">
+              {unassigned.map((camper) => (
+                <div className="person" key={camper.id}>
+                  <Avatar c={camper} />
+                  <span><b>{camper.name}</b><small>Age {camper.age}</small></span>
+                  <select value="" onChange={(event) => move(camper.id, event.target.value)}>
+                    <option value="" disabled>Select room</option>
+                    {d.rooms.filter((room) => room.gender === camper.gender).map((room) => (
+                      <option key={room.id} value={room.id}>{room.name} ({room.occupancy}/{room.capacity})</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </article>
+        )}
         {d.rooms.map((r) => (
           <article className="roomcard scrollable" key={r.id}>
             <header>
