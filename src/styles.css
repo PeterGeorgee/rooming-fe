@@ -608,7 +608,7 @@ td:first-child {
   background: #102d2a9c;
   display: grid;
   place-items: center;
-  z-index: 30;
+  z-index: 100;
   padding: 20px;
 }
 .modal {
@@ -637,7 +637,7 @@ td:first-child {
   font-size: 11px;
 }
 .dialogbackdrop {
-  z-index: 60;
+  z-index: 110;
 }
 .alertmodal {
   width: min(430px, 100%);
@@ -1124,12 +1124,29 @@ body {
   .backdrop {
     align-items: end;
     padding: 0;
+    overflow: hidden;
   }
   .modal {
     width: 100%;
-    max-height: 92dvh;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
     border-radius: 18px 18px 0 0;
-    padding: 24px 18px max(20px, env(safe-area-inset-bottom));
+    padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    box-shadow: 0 -16px 40px #171a1f2e;
+  }
+  body:has(.backdrop) {
+    overflow: hidden;
+  }
+  .modal .close {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    color: #171a1f;
+    border-radius: 50%;
   }
   .two,
   .leaderrow,
