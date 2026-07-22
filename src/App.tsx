@@ -227,6 +227,7 @@ export default function App() {
           type={modal}
           rooms={data?.rooms || []}
           leaders={data?.leaders || []}
+          discussionGroups={data?.groups || []}
           close={() => setModal(null)}
           submit={async (body) => {
             let imported: ImportResult | undefined;
@@ -769,7 +770,7 @@ function Groups({ d, generate, autoLeaders, editLeaders }: { d: Dashboard; gener
       <div className="toolbar">
         <button className="primary" onClick={generate}>
           <Shuffle size={15} />
-          Generate groups
+          {d.groups.length?"Change group counts":"Generate groups"}
         </button>
         <button className="secondary toolbar-action" disabled={d.groups.length===0} onClick={autoLeaders}>
           <Users size={15}/>
@@ -897,15 +898,20 @@ function Modal({
   type,
   rooms,
   leaders,
+  discussionGroups,
   close,
   submit,
 }: {
   type: string;
   rooms: Dashboard["rooms"];
   leaders: CampLeader[];
+  discussionGroups: Dashboard["groups"];
   close: () => void;
   submit: (x: any) => Promise<void>;
 }) {
+  const existingGirlGroups=discussionGroups.filter(group=>group.campers.length>0&&group.campers.every(camper=>camper.gender==="FEMALE")).length;
+  const existingBoyGroups=discussionGroups.filter(group=>group.campers.length>0&&group.campers.every(camper=>camper.gender==="MALE")).length;
+  const existingSeparated=discussionGroups.length>0&&existingGirlGroups+existingBoyGroups===discussionGroups.length;
   const [f, setF] = useState<any>({
       name: "",
       startDate: "",
@@ -914,9 +920,11 @@ function Modal({
       count: 1,
       capacity: 8,
       gender: "FEMALE",
-      numberOfGroups: 6,
+      numberOfGroups: discussionGroups.length||6,
       membersPerGroup: null,
-      genderSeparated: false,
+      genderSeparated: existingSeparated,
+      femaleGroups: existingGirlGroups||1,
+      maleGroups: existingBoyGroups||1,
       girlLeaders: [],
       boyLeaders: [],
       caringLeaderIds: [],
@@ -1136,7 +1144,23 @@ function Modal({
         )}
         {type === "groups" && (
           <>
-            <label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={f.genderSeparated}
+                onChange={(e) =>
+                  setF({ ...f, genderSeparated: e.target.checked })
+                }
+              />
+              Gender-separated groups
+            </label>
+            {f.genderSeparated ? <>
+              <p className="modalintro">Changing either count regenerates the discussion groups and redistributes all campers.</p>
+              <div className="two">
+                <label>Girls' groups<input required min="0" type="number" value={f.femaleGroups} onChange={e=>setF({...f,femaleGroups:+e.target.value})}/></label>
+                <label>Boys' groups<input required min="0" type="number" value={f.maleGroups} onChange={e=>setF({...f,maleGroups:+e.target.value})}/></label>
+              </div>
+            </> : <label>
               Number of groups
               <input
                 min="1"
@@ -1150,16 +1174,7 @@ function Modal({
                   })
                 }
               />
-            </label>
-            <label className="check">
-              <input
-                type="checkbox"
-                onChange={(e) =>
-                  setF({ ...f, genderSeparated: e.target.checked })
-                }
-              />
-              Gender-separated groups
-            </label>
+            </label>}
           </>
         )}
         {type === "caring" && <div className="leaderbody"><p className="modalintro">Select leaders from the Leaders tab. One balanced, gender-matched camper group will be created for each selected leader.</p>{caringLeaderSection("FEMALE","Female leaders")}{caringLeaderSection("MALE","Male leaders")}</div>}
