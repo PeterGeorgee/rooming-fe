@@ -128,18 +128,7 @@ export default function App() {
           ) : (
             <>
               {view === "Overview" && (
-                <Overview
-                  d={data}
-                  busy={busy}
-                  generate={() =>
-                    act(() =>
-                      request(`/camps/${campId}/assign/rooms`, {
-                        method: "POST",
-                        body: JSON.stringify({ leaders: [] }),
-                      }),
-                    )
-                  }
-                />
+                <Overview d={data}/>
               )}{" "}
               {view === "Campers" && (
                 <Campers
@@ -196,6 +185,15 @@ export default function App() {
                     )
                   }
                   leader={setLeaderEdit}
+                  busy={busy}
+                  generate={() =>
+                    act(() =>
+                      request(`/camps/${campId}/assign/rooms`, {
+                        method: "POST",
+                        body: JSON.stringify({ leaders: [] }),
+                      }),
+                    )
+                  }
                 />
               )}{" "}
               {view === "Discussion groups" && (
@@ -413,16 +411,7 @@ function Empty({ onCreate }: { onCreate: () => void }) {
     </div>
   );
 }
-function Overview({
-  d,
-  busy,
-  generate,
-}: {
-  d: Dashboard;
-  busy: boolean;
-  generate: () => void;
-}) {
-  const generated = d.campers.some((camper) => camper.roomId);
+function Overview({d}: {d: Dashboard}) {
   return (
     <>
       <div className="hero">
@@ -469,13 +458,7 @@ function Overview({
         <div className="panelhead">
           <div>
             <h3>Room assignments</h3>
-            <p>Generate rooms first, then assign leaders by gender</p>
-          </div>
-          <div className="assignmentactions">
-            <button className="primary" disabled={busy} onClick={generate}>
-              <Shuffle size={15} />
-              {generated ? "Regenerate rooms" : "Generate rooms"}
-            </button>
+            <p>Current room assignment summary</p>
           </div>
         </div>
         <RoomTable rooms={d.rooms} />
@@ -645,6 +628,8 @@ function Rooms({
   remove,
   move,
   leader,
+  busy,
+  generate,
 }: {
   d: Dashboard;
   add: () => void;
@@ -652,11 +637,18 @@ function Rooms({
   remove: (id: string, name: string) => void;
   move: (id: string, rid: string) => void;
   leader: (room: Dashboard["rooms"][number]) => void;
+  busy: boolean;
+  generate: () => void;
 }) {
   const unassigned = d.campers.filter((camper) => !camper.roomId);
+  const generated = d.campers.some((camper) => camper.roomId);
   return (
     <>
       <div className="toolbar">
+        <button className="primary" disabled={busy} onClick={generate}>
+          <Shuffle size={15}/>
+          {generated ? "Regenerate rooms" : "Generate rooms"}
+        </button>
         <button className="primary" onClick={add}>
           <Plus size={15} />
           Add rooms
@@ -757,7 +749,7 @@ function Rooms({
 }
 function Leaders({leaders,add,importFile,edit,changeGender,remove}:{leaders:(CampLeader&{genderAssumed?:boolean})[];add:()=>void;importFile:()=>void;edit:(leader:CampLeader)=>void;changeGender:(leader:CampLeader,gender:"MALE"|"FEMALE")=>void;remove:(leader:CampLeader)=>void}) {
   const needsReview=leaders.filter(leader=>leader.genderAssumed).length;
-  return <div className="panel"><div className="panelhead"><div><h3>Camp leaders</h3><p>{leaders.length} leaders available for Rooms, Discussion Groups, and Caring{needsReview>0&&` · ${needsReview} assumed gender${needsReview===1?"":"s"} need review`}</p></div><div className="assignmentactions"><button className="secondary" onClick={importFile}><Upload size={15}/>Import leaders</button><button className="primary" onClick={add}><Plus size={15}/>Add leader</button></div></div>{leaders.length===0?<div className="done">Add leaders individually or import a sheet with a <b>Name</b> column. Gender is optional and will be assumed when missing.</div>:<table className="leaderstable"><thead><tr><th>Leader</th><th>Gender</th><th>Actions</th></tr></thead><tbody>{leaders.map(leader=><tr key={leader.id}><td><span className={`avatar ${leader.gender==="FEMALE"?"pink":"green"}`}>{leader.name.split(/\s+/).map(part=>part[0]).join("").slice(0,2)}</span><b>{leader.name}</b>{leader.genderAssumed&&<span className="assumedgender">Assumed · needs review</span>}</td><td><div className="leadergender"><select value={leader.gender} onChange={e=>changeGender(leader,e.target.value as "MALE"|"FEMALE")}><option value="FEMALE">Female</option><option value="MALE">Male</option></select>{leader.genderAssumed&&<button className="rename" onClick={()=>changeGender(leader,leader.gender as "MALE"|"FEMALE")}>Confirm</button>}</div></td><td><div className="leaderactions"><button className="rename" onClick={()=>edit(leader)}>Rename</button><button className="deletecamper" onClick={()=>remove(leader)}><Trash2 size={14}/>Delete</button></div></td></tr>)}</tbody></table>}</div>;
+  return <div className="panel"><div className="panelhead"><div><h3>Camp leaders</h3><p>{leaders.length} leaders available for Rooms, Discussion Groups, and Caring{needsReview>0&&` · ${needsReview} assumed gender${needsReview===1?"":"s"} need review`}</p></div><div className="assignmentactions"><button className="secondary leader-import" onClick={importFile}><Upload size={15}/>Import leaders</button><button className="primary" onClick={add}><Plus size={15}/>Add leader</button></div></div>{leaders.length===0?<div className="done">Add leaders individually or import a sheet with a <b>Name</b> column. Gender is optional and will be assumed when missing.</div>:<table className="leaderstable"><thead><tr><th>Leader</th><th>Gender</th><th>Actions</th></tr></thead><tbody>{leaders.map(leader=><tr key={leader.id}><td><span className={`avatar ${leader.gender==="FEMALE"?"pink":"green"}`}>{leader.name.split(/\s+/).map(part=>part[0]).join("").slice(0,2)}</span><b>{leader.name}</b>{leader.genderAssumed&&<span className="assumedgender">Assumed · needs review</span>}</td><td><div className="leadergender"><select value={leader.gender} onChange={e=>changeGender(leader,e.target.value as "MALE"|"FEMALE")}><option value="FEMALE">Female</option><option value="MALE">Male</option></select>{leader.genderAssumed&&<button className="rename" onClick={()=>changeGender(leader,leader.gender as "MALE"|"FEMALE")}>Confirm</button>}</div></td><td><div className="leaderactions"><button className="rename" onClick={()=>edit(leader)}>Rename</button><button className="deletecamper" onClick={()=>remove(leader)}><Trash2 size={14}/>Delete</button></div></td></tr>)}</tbody></table>}</div>;
 }
 function Groups({ d, generate, editLeaders }: { d: Dashboard; generate: () => void; editLeaders: (group: Dashboard["groups"][number]) => void }) {
   return (
