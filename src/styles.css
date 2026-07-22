@@ -1135,7 +1135,7 @@ body {
     line-height: 1;
     padding: 6px 3px;
   }
-  .mobile-account { margin: 8px 12px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: white; display: flex; align-items: center; gap: 7px; }
+  .mobile-account { margin: 10px 12px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: white; display: flex; align-items: center; gap: 7px; }
   .mobile-account > span { min-width: 0; flex: 1; display: flex; flex-direction: column; }
   .mobile-account b { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-account small { color: #7a817f; font-size: 9px; }
