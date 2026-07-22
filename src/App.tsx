@@ -577,6 +577,7 @@ function Campers({
             <th>Preferences</th>
             <th>Room</th>
             <th>Group</th>
+            <th>Caring</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -623,6 +624,7 @@ function Campers({
               </td>
               <td>{c.room || "Unassigned"}</td>
               <td>{c.group || "Unassigned"}</td>
+              <td>{c.caringGroup || "Unassigned"}</td>
               <td>
                 <button className="deletecamper" onClick={() => removeCamper(c)} aria-label={`Remove ${c.name}`}>
                   <Trash2 size={15}/><span>Remove</span>

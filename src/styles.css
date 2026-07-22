@@ -155,9 +155,28 @@ h1 {
 }
 .search input {
   width: 100%;
+  min-width: 0;
   border: 0;
   outline: 0;
   padding: 0 8px;
+}
+.searchicon {
+  flex: 0 0 auto;
+}
+.searchclear {
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fff0ef;
+  color: #d91410;
+  display: grid;
+  place-items: center;
+  flex: 0 0 27px;
+}
+.searchclear:hover {
+  background: #ffdeda;
 }
 .results {
   position: absolute;
