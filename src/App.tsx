@@ -651,6 +651,7 @@ function Rooms({
 }) {
   const unassigned = d.campers.filter((camper) => !camper.roomId);
   const generated = d.campers.some((camper) => camper.roomId);
+  const orderedRooms=[...d.rooms].sort((left,right)=>Number(left.occupancy===0)-Number(right.occupancy===0));
   return (
     <>
       <div className="toolbar">
@@ -693,7 +694,7 @@ function Rooms({
             </div>
           </article>
         )}
-        {d.rooms.map((r) => (
+        {orderedRooms.map((r) => (
           <article className="roomcard scrollable" key={r.id}>
             <header>
               <div>
