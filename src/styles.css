@@ -902,6 +902,9 @@ body {
 .camp-share-code { margin: -12px 5px 12px; padding: 9px; border: 1px solid #5b6069; border-radius: 8px; background: #171a1f; display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .camp-share-code small { color: #b9bec7; text-transform: uppercase; letter-spacing: .7px; font-size: 7px; }
 .camp-share-code strong { color: white; font-size: 17px; letter-spacing: 2.2px; line-height: 1.2; }
+.camp-share-code > span { display: flex; align-items: center; gap: 7px; }
+.camp-share-code button { width: 29px; height: 29px; padding: 0; border: 1px solid #5b6069; border-radius: 7px; background: #292d34; color: #ff7772; display: grid; place-items: center; }
+.camp-share-code button:hover { border-color: #ff7772; color: white; }
 .mobile-controls-wrap { display: none; }
 .authpage { min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom)); display: grid; place-items: center; background: radial-gradient(circle at top, #fff 0, #fff2f1 38%, #f6f5f2 75%); }
 .authcard { width: min(440px, 100%); background: white; border: 1px solid var(--line); border-radius: 20px; padding: clamp(24px, 6vw, 42px); box-shadow: 0 24px 70px #171a1f1a; }
@@ -1176,6 +1179,7 @@ body {
   .mobile-camp-code { margin: 8px 12px 0; background: #fff8f7; border-color: #efaaa7; flex-direction: row; justify-content: space-between; padding: 9px 12px; }
   .mobile-camp-code small { color: #7a5a58; font-size: 8px; }
   .mobile-camp-code strong { color: #d91410; font-size: 14px; }
+  .mobile-camp-code button { width: 32px; height: 32px; border-color: #efaaa7; background: white; color: #d91410; }
   .mobile-nav button.on {
     background: #eb1712;
     color: white;
