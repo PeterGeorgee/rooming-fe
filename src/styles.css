@@ -801,6 +801,9 @@ td:first-child {
   gap: 8px;
   font-size: 11px;
 }
+.leaderchoice { min-height: 42px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; display: flex; align-items: center; gap: 9px; background: #fbfaf8; color: #303735 !important; font-size: 12px !important; }
+.modal .leaderchoice input { width: 18px; height: 18px; margin: 0; flex: 0 0 auto; accent-color: #eb1712; }
+.leaderactions { display: flex; align-items: center; gap: 8px; }
 .brand-loader {
   display: flex;
   flex-direction: column;

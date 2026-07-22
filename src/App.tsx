@@ -13,7 +13,7 @@ import {
   X,
   Trash2,
 } from "lucide-react";
-import { download, getAuthToken, setAuthToken, type AuthUser, type Camp, type Camper, type Dashboard, type ImportResult, request } from "./api";
+import { download, getAuthToken, setAuthToken, type AuthUser, type Camp, type Camper, type CampLeader, type Dashboard, type ImportResult, request } from "./api";
 import { Avatar } from "./components/Avatar";
 import { AppHeader } from "./components/AppHeader";
 import { AppDialog, NoticePopup, type DialogState } from "./components/Feedback";
@@ -29,7 +29,7 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [modal, setModal] = useState<
-      "camp" | "room" | "import" | "groups" | "caring" | "assignRooms" | null
+      "camp" | "room" | "import" | "leader" | "leaderImport" | "groups" | "caring" | "assignRooms" | null
     >(null),
     [q, setQ] = useState("");
   const [leaderEdit, setLeaderEdit] = useState<Dashboard["rooms"][number] | null>(null);
@@ -166,6 +166,7 @@ export default function App() {
                   }}
                 />
               )}{" "}
+              {view === "Leaders" && <Leaders leaders={data.leaders||[]} add={()=>setModal("leader")} importFile={()=>setModal("leaderImport")} edit={async leader=>{const name=(await promptPopup("Edit leader","Enter the leader's name.",leader.name))?.trim();if(name)act(()=>request(`/leaders/${leader.id}`,{method:"PATCH",body:JSON.stringify({name,gender:leader.gender})}))}} changeGender={(leader,gender)=>act(()=>request(`/leaders/${leader.id}`,{method:"PATCH",body:JSON.stringify({name:leader.name,gender})}))} remove={async leader=>{if(await confirmPopup("Delete leader",`Delete ${leader.name}?`,"Delete leader"))act(()=>request(`/leaders/${leader.id}`,{method:"DELETE"}))}}/>}{" "}
               {view === "Rooms" && (
                 <Rooms
                   d={data}
@@ -226,6 +227,7 @@ export default function App() {
         <Modal
           type={modal}
           rooms={data?.rooms || []}
+          leaders={data?.leaders || []}
           close={() => setModal(null)}
           submit={async (body) => {
             let imported: ImportResult | undefined;
@@ -257,6 +259,9 @@ export default function App() {
                   method: "POST",
                   body: JSON.stringify(body),
                 });
+              else if (modal === "leader")
+                await request(`/camps/${campId}/leaders`,{method:"POST",body:JSON.stringify(body)});
+              else if (modal === "leaderImport") {const f=new FormData();f.append("file",body as File);await request(`/camps/${campId}/leaders/import`,{method:"POST",body:f});}
               else {
                 const f = new FormData();
                 f.append("file", body as File);
@@ -297,6 +302,7 @@ export default function App() {
         <RoomLeaderModal
           room={leaderEdit}
           rooms={data.rooms}
+          leaders={data.leaders||[]}
           close={() => setLeaderEdit(null)}
           save={async (leaders) => {
             await act(() =>
@@ -312,15 +318,16 @@ export default function App() {
       {groupLeaderEdit && (
         <GroupLeaderModal
           group={groupLeaderEdit}
+          leaders={data?.leaders||[]}
           close={() => setGroupLeaderEdit(null)}
-          save={async (leaders) => {
-            await act(() => request(`/groups/${groupLeaderEdit.id}/leaders`, { method: "PUT", body: JSON.stringify({ leaders }) }));
+          save={async (leaderIds) => {
+            await act(() => request(`/groups/${groupLeaderEdit.id}/leaders`, { method: "PUT", body: JSON.stringify({ leaderIds }) }));
             setGroupLeaderEdit(null);
           }}
         />
       )}
       {caringLeaderEdit && (
-        <CaringLeaderModal group={caringLeaderEdit} close={()=>setCaringLeaderEdit(null)} save={async(name)=>{await act(()=>request(`/caring-groups/${caringLeaderEdit.id}/leader`,{method:"PATCH",body:JSON.stringify({name})}));setCaringLeaderEdit(null)}}/>
+        <CaringLeaderModal group={caringLeaderEdit} leaders={data?.leaders||[]} close={()=>setCaringLeaderEdit(null)} save={async(leaderId)=>{await act(()=>request(`/caring-groups/${caringLeaderEdit.id}/leader`,{method:"PATCH",body:JSON.stringify({leaderId})}));setCaringLeaderEdit(null)}}/>
       )}
       {error && <NoticePopup message={error} close={() => setError("")} />}
       {dialog && <AppDialog dialog={dialog} close={(value) => { dialog.resolve(value); setDialog(null); }} />}
@@ -333,16 +340,19 @@ export default function App() {
 function RoomLeaderModal({
   room,
   rooms,
+  leaders: availableLeaders,
   close,
   save,
 }: {
   room: Dashboard["rooms"][number];
   rooms: Dashboard["rooms"];
+  leaders: CampLeader[];
   close: () => void;
-  save: (leaders: { name: string; sleepRoomId: string }[]) => Promise<void>;
+  save: (leaders: { leaderId: string; sleepRoomId: string }[]) => Promise<void>;
 }) {
-  const [leaders, setLeaders] = useState(
-    room.leaders.map((leader) => ({ name: leader.name, sleepRoomId: leader.sleepRoomId || room.id })),
+  const matchingLeaders=availableLeaders.filter(leader=>leader.gender===room.gender);
+  const [assignments, setAssignments] = useState(
+    room.leaders.map((leader) => ({ leaderId: leader.leaderId||matchingLeaders.find(item=>item.name.toLowerCase()===leader.name.toLowerCase())?.id||"", sleepRoomId: leader.sleepRoomId || room.id })),
   );
   const eligible = rooms.filter((candidate) => candidate.gender === room.gender);
   return (
@@ -352,7 +362,7 @@ function RoomLeaderModal({
         onMouseDown={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault();
-          save(leaders.map((leader) => ({ ...leader, name: leader.name.trim() })));
+          save(assignments);
         }}
       >
         <button type="button" className="close" onClick={close}>
@@ -362,32 +372,33 @@ function RoomLeaderModal({
         <p className="modalintro">
           Add everyone responsible for {room.name} and choose where each leader sleeps.
         </p>
-        {leaders.map((leader, index) => (
+        {assignments.map((leader, index) => (
           <div className="leaderrow roomleaderrow" key={index}>
-            <input required placeholder={`Leader ${index + 1} name`} value={leader.name} onChange={(event) => { const next=[...leaders]; next[index]={...leader,name:event.target.value}; setLeaders(next); }} />
-            <select required value={leader.sleepRoomId} onChange={(event) => { const next=[...leaders]; next[index]={...leader,sleepRoomId:event.target.value}; setLeaders(next); }}>
+            <select required value={leader.leaderId} onChange={(event) => { const next=[...assignments]; next[index]={...leader,leaderId:event.target.value}; setAssignments(next); }}><option value="">Select leader</option>{matchingLeaders.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>
+            <select required value={leader.sleepRoomId} onChange={(event) => { const next=[...assignments]; next[index]={...leader,sleepRoomId:event.target.value}; setAssignments(next); }}>
               {eligible.map((candidate) => (
                 <option key={candidate.id} value={candidate.id}>
                   {candidate.name} ({candidate.occupancy}/{candidate.capacity})
                 </option>
               ))}
             </select>
-            <button type="button" className="removeroom" onClick={() => setLeaders(leaders.filter((_, i) => i !== index))}><Trash2 size={14}/>Remove</button>
+            <button type="button" className="removeroom" onClick={() => setAssignments(assignments.filter((_, i) => i !== index))}><Trash2 size={14}/>Remove</button>
           </div>
         ))}
-        <button type="button" className="secondary" onClick={() => setLeaders([...leaders,{name:"",sleepRoomId:eligible[0]?.id||""}])}><Plus size={14}/>Add leader</button>
+        {matchingLeaders.length===0&&<p className="autherror">Add a {room.gender==="FEMALE"?"female":"male"} leader in the Leaders tab first.</p>}
+        <button type="button" className="secondary" disabled={matchingLeaders.length===0} onClick={() => setAssignments([...assignments,{leaderId:matchingLeaders[0]?.id||"",sleepRoomId:eligible[0]?.id||""}])}><Plus size={14}/>Add leader</button>
         <button className="primary">Save leaders</button>
       </form>
     </div>
   );
 }
-function GroupLeaderModal({group,close,save}:{group:Dashboard["groups"][number];close:()=>void;save:(leaders:string[])=>Promise<void>}) {
-  const [leaders,setLeaders]=useState(group.leaders);
-  return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(leaders.map(x=>x.trim()))}}><button type="button" className="close" onClick={close}><X/></button><h2>Group leaders</h2><p className="modalintro">Add one or more leaders for {group.name}.</p>{leaders.map((leader,index)=><div className="leaderrow" key={index}><input required placeholder={`Leader ${index+1} name`} value={leader} onChange={e=>{const next=[...leaders];next[index]=e.target.value;setLeaders(next)}}/><button type="button" className="removeroom" onClick={()=>setLeaders(leaders.filter((_,i)=>i!==index))}><Trash2 size={14}/>Remove</button></div>)}<button type="button" className="secondary" onClick={()=>setLeaders([...leaders,""])}><Plus size={14}/>Add leader</button><button className="primary">Save leaders</button></form></div>;
+function GroupLeaderModal({group,leaders:available,close,save}:{group:Dashboard["groups"][number];leaders:CampLeader[];close:()=>void;save:(leaderIds:string[])=>Promise<void>}) {
+  const [leaderIds,setLeaderIds]=useState(group.leaders.map(name=>available.find(leader=>leader.name.toLowerCase()===name.toLowerCase())?.id||""));
+  return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(leaderIds)}}><button type="button" className="close" onClick={close}><X/></button><h2>Group leaders</h2><p className="modalintro">Choose one or more people from the Leaders tab for {group.name}.</p>{leaderIds.map((leaderId,index)=><div className="leaderrow" key={index}><select required value={leaderId} onChange={e=>{const next=[...leaderIds];next[index]=e.target.value;setLeaderIds(next)}}><option value="">Select leader</option>{available.map(leader=><option key={leader.id} value={leader.id}>{leader.name} ({leader.gender==="FEMALE"?"Female":leader.gender==="MALE"?"Male":"Review gender"})</option>)}</select><button type="button" className="removeroom" onClick={()=>setLeaderIds(leaderIds.filter((_,i)=>i!==index))}><Trash2 size={14}/>Remove</button></div>)}{available.length===0&&<p className="autherror">Add leaders in the Leaders tab first.</p>}<button type="button" className="secondary" disabled={available.length===0} onClick={()=>setLeaderIds([...leaderIds,available[0]?.id||""])}><Plus size={14}/>Add leader</button><button className="primary">Save leaders</button></form></div>;
 }
-function CaringLeaderModal({group,close,save}:{group:Dashboard["caringGroups"][number];close:()=>void;save:(name:string)=>Promise<void>}) {
-  const [name,setName]=useState(group.leaderName);
-  return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(name.trim())}}><button type="button" className="close" onClick={close}><X/></button><h2>Edit Caring leader</h2><p className="modalintro">Update the leader responsible for {group.name}.</p><label>Leader name<input required value={name} onChange={e=>setName(e.target.value)}/></label><button className="primary">Save leader</button></form></div>;
+function CaringLeaderModal({group,leaders,close,save}:{group:Dashboard["caringGroups"][number];leaders:CampLeader[];close:()=>void;save:(leaderId:string)=>Promise<void>}) {
+  const eligible=leaders.filter(leader=>leader.gender===group.gender);const [leaderId,setLeaderId]=useState(group.leaderId||eligible.find(leader=>leader.name.toLowerCase()===group.leaderName.toLowerCase())?.id||"");
+  return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(leaderId)}}><button type="button" className="close" onClick={close}><X/></button><h2>Edit Caring leader</h2><p className="modalintro">Choose the leader responsible for {group.name}.</p><label>Leader<select required value={leaderId} onChange={e=>setLeaderId(e.target.value)}><option value="">Select leader</option>{eligible.map(leader=><option key={leader.id} value={leader.id}>{leader.name}</option>)}</select></label><button className="primary">Save leader</button></form></div>;
 }
 function Empty({ onCreate }: { onCreate: () => void }) {
   return (
@@ -744,6 +755,9 @@ function Rooms({
     </>
   );
 }
+function Leaders({leaders,add,importFile,edit,changeGender,remove}:{leaders:CampLeader[];add:()=>void;importFile:()=>void;edit:(leader:CampLeader)=>void;changeGender:(leader:CampLeader,gender:"MALE"|"FEMALE")=>void;remove:(leader:CampLeader)=>void}) {
+  return <div className="panel"><div className="panelhead"><div><h3>Camp leaders</h3><p>{leaders.length} leaders available for Rooms, Discussion Groups, and Caring</p></div><div className="assignmentactions"><button className="secondary" onClick={importFile}><Upload size={15}/>Import leaders</button><button className="primary" onClick={add}><Plus size={15}/>Add leader</button></div></div>{leaders.length===0?<div className="done">Add leaders individually or import a sheet with <b>Name</b> and <b>Gender</b> columns.</div>:<table className="leaderstable"><thead><tr><th>Leader</th><th>Gender</th><th>Actions</th></tr></thead><tbody>{leaders.map(leader=><tr key={leader.id}><td><span className={`avatar ${leader.gender==="FEMALE"?"pink":"green"}`}>{leader.name.split(/\s+/).map(part=>part[0]).join("").slice(0,2)}</span><b>{leader.name}</b></td><td><select value={leader.gender} onChange={e=>changeGender(leader,e.target.value as "MALE"|"FEMALE")}><option value="FEMALE">Female</option><option value="MALE">Male</option></select></td><td><div className="leaderactions"><button className="rename" onClick={()=>edit(leader)}>Rename</button><button className="deletecamper" onClick={()=>remove(leader)}><Trash2 size={14}/>Delete</button></div></td></tr>)}</tbody></table>}</div>;
+}
 function Groups({ d, generate, editLeaders }: { d: Dashboard; generate: () => void; editLeaders: (group: Dashboard["groups"][number]) => void }) {
   return (
     <>
@@ -867,11 +881,13 @@ function Exports({ id, campName, onError }: { id: string; campName:string; onErr
 function Modal({
   type,
   rooms,
+  leaders,
   close,
   submit,
 }: {
   type: string;
   rooms: Dashboard["rooms"];
+  leaders: CampLeader[];
   close: () => void;
   submit: (x: any) => Promise<void>;
 }) {
@@ -888,8 +904,7 @@ function Modal({
       genderSeparated: false,
       girlLeaders: [],
       boyLeaders: [],
-      femaleCaringLeaders: [],
-      maleCaringLeaders: [],
+      caringLeaderIds: [],
     }),
     [file, setFile] = useState<File>();
   const setLeaderCount = (gender: "FEMALE" | "MALE", count: number) => {
@@ -962,7 +977,7 @@ function Modal({
       </section>
     );
   };
-  const caringLeaderSection=(gender:"FEMALE"|"MALE",title:string)=>{const key=gender==="FEMALE"?"femaleCaringLeaders":"maleCaringLeaders";const leaders:string[]=f[key];return <section className="leadersection"><h3>{title}</h3><label>Number of leaders<input min="0" max="100" type="number" value={leaders.length} onChange={e=>{const count=Math.max(0,+e.target.value);setF({...f,[key]:Array.from({length:count},(_,index)=>leaders[index]||"")})}}/></label>{leaders.map((name,index)=><label key={index}>Leader {index+1}<input required placeholder={`${gender==="FEMALE"?"Female":"Male"} leader ${index+1} name`} value={name} onChange={e=>{const next=[...leaders];next[index]=e.target.value;setF({...f,[key]:next})}}/></label>)}</section>};
+  const caringLeaderSection=(gender:"FEMALE"|"MALE",title:string)=>{const eligible=leaders.filter(leader=>leader.gender===gender);return <section className="leadersection"><h3>{title}</h3>{eligible.length===0?<p className="modalintro">No {title.toLowerCase()} are available. Add them from the Leaders tab.</p>:eligible.map(leader=><label className="leaderchoice" key={leader.id}><input type="checkbox" checked={f.caringLeaderIds.includes(leader.id)} onChange={e=>setF({...f,caringLeaderIds:e.target.checked?[...f.caringLeaderIds,leader.id]:f.caringLeaderIds.filter((id:string)=>id!==leader.id)})}/><span>{leader.name}</span></label>)}</section>};
   return (
     <div className="backdrop" onMouseDown={close}>
       <form
@@ -971,12 +986,12 @@ function Modal({
         onSubmit={(e) => {
           e.preventDefault();
           submit(
-            type === "import"
+            type === "import"||type==="leaderImport"
               ? file
               : type === "assignRooms"
                 ? { leaders: [...f.girlLeaders, ...f.boyLeaders] }
                 : type === "caring"
-                  ? {leaders:[...f.femaleCaringLeaders.map((name:string)=>({name,gender:"FEMALE"})),...f.maleCaringLeaders.map((name:string)=>({name,gender:"MALE"}))]}
+                  ? {leaderIds:f.caringLeaderIds}
                 : f,
           );
         }}
@@ -987,6 +1002,10 @@ function Modal({
         <h2>
           {type === "camp"
             ? "Create camp"
+            : type === "leader"
+              ? "Add leader"
+            : type === "leaderImport"
+              ? "Import leaders"
             : type === "room"
               ? "Add a room"
               : type === "groups"
@@ -1028,6 +1047,7 @@ function Modal({
             />
           </>
         )}
+        {type === "leader"&&<><label>Leader name<input required placeholder="Leader name" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></label><label>Gender<select value={f.gender} onChange={e=>setF({...f,gender:e.target.value})}><option value="FEMALE">Female</option><option value="MALE">Male</option></select></label></>}
         {type === "room" && (
           <>
             <label>
@@ -1105,14 +1125,13 @@ function Modal({
             </label>
           </>
         )}
-        {type === "caring" && <div className="leaderbody"><p className="modalintro">Enter every Caring leader. One balanced, gender-matched camper group will be created for each leader.</p>{caringLeaderSection("FEMALE","Female leaders")}{caringLeaderSection("MALE","Male leaders")}</div>}
-        {type === "import" && (
+        {type === "caring" && <div className="leaderbody"><p className="modalintro">Select leaders from the Leaders tab. One balanced, gender-matched camper group will be created for each selected leader.</p>{caringLeaderSection("FEMALE","Female leaders")}{caringLeaderSection("MALE","Male leaders")}</div>}
+        {(type === "import"||type==="leaderImport") && (
           <label className="drop">
             <Upload />
             <b>{file?.name || "Choose .csv, .xlsx or .xls file"}</b>
             <span>
-              Airtable Team view exports are supported; missing genders can be
-              reviewed after upload
+              {type==="leaderImport"?"Use Name and Gender columns. Gender can be Male/Female, Boy/Girl, or M/F.":"Airtable Team view exports are supported; missing genders can be reviewed after upload"}
             </span>
             <input
               required
@@ -1122,7 +1141,7 @@ function Modal({
             />
           </label>
         )}
-        <button className="primary" disabled={(type === "import" && !file)||(type === "caring"&&f.femaleCaringLeaders.length+f.maleCaringLeaders.length===0)}>
+        <button className="primary" disabled={((type === "import"||type==="leaderImport") && !file)||(type === "caring"&&f.caringLeaderIds.length===0)}>
           Save and continue
         </button>
       </form>
