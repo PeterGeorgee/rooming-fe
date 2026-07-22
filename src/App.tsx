@@ -238,6 +238,18 @@ export default function App() {
               }
             });
             setModal(null);
+            if (imported && imported.missingCampers.length > 0) {
+              const visibleNames = imported.missingCampers.slice(0, 12).map((camper) => camper.name).join(", ");
+              const remaining = imported.missingCampers.length - 12;
+              const removeMissing = await confirmPopup(
+                "Campers missing from this file",
+                `${imported.missingCampers.length} existing camper${imported.missingCampers.length === 1 ? " is" : "s are"} not in the newly uploaded sheet:\n\n${visibleNames}${remaining > 0 ? `, and ${remaining} more` : ""}\n\nWould you like to keep them in the camp or remove them?`,
+                "Remove missing campers",
+                "Keep campers",
+              );
+              if (removeMissing)
+                await act(() => request("/campers", { method: "DELETE", body: JSON.stringify({ camperIds: imported!.missingCampers.map((camper) => camper.id) }) }));
+            }
             if (imported && imported.added > 0 && imported.existingAssignments) {
               const regenerate = await confirmPopup(
                 "New campers imported",
