@@ -569,7 +569,8 @@ td:first-child {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
-.exportgrid a {
+.exportgrid a,
+.exportgrid > button {
   background: white;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -580,8 +581,10 @@ td:first-child {
   grid-template-columns: 45px 1fr 30px;
   align-items: center;
   gap: 4px;
+  text-align: left;
 }
-.exportgrid a > svg:first-child {
+.exportgrid a > svg:first-child,
+.exportgrid > button > svg:first-child {
   grid-row: 1/3;
   background: #e5f0ed;
   color: var(--teal);
@@ -597,7 +600,8 @@ td:first-child {
   font-size: 10px;
   color: #84908e;
 }
-.exportgrid a > svg:last-child {
+.exportgrid a > svg:last-child,
+.exportgrid > button > svg:last-child {
   grid-column: 3;
   grid-row: 1/3;
   color: var(--teal);
@@ -877,6 +881,35 @@ body {
   flex-direction: column;
   gap: 5px;
 }
+.accountbox {
+  margin-top: auto;
+  padding: 11px;
+  border: 1px solid #424750;
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.accountbox b { color: white; font-size: 11px; overflow-wrap: anywhere; }
+.accountbox small { color: #b9bec7; font-size: 9px; }
+.accountbox strong { color: #ff7772; letter-spacing: .6px; }
+.accountbox div { display: flex; gap: 5px; }
+.accountbox button { flex: 1; border: 1px solid #555b64; border-radius: 6px; background: #292d34; color: #e5e7eb; padding: 7px 5px; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 9px; }
+.app > aside .accountbox + .newcamp { margin-top: 4px; }
+.mobile-controls-wrap { display: none; }
+.authpage { min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom)); display: grid; place-items: center; background: radial-gradient(circle at top, #fff 0, #fff2f1 38%, #f6f5f2 75%); }
+.authcard { width: min(440px, 100%); background: white; border: 1px solid var(--line); border-radius: 20px; padding: clamp(24px, 6vw, 42px); box-shadow: 0 24px 70px #171a1f1a; }
+.authcard > img { width: min(230px, 70%); display: block; margin: 0 auto 28px; }
+.authintro small { color: #eb1712; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+.authintro h1 { font-size: 32px; margin-top: 8px; }
+.authintro p { color: #6b7372; line-height: 1.5; font-size: 14px; }
+.authcard form { display: flex; flex-direction: column; gap: 15px; margin-top: 24px; }
+.authcard label { color: #515957; font-size: 12px; font-weight: 700; }
+.authcard input { display: block; width: 100%; min-height: 48px; margin-top: 6px; padding: 11px 13px; border: 1px solid #dcdedb; border-radius: 9px; outline: none; }
+.authcard input:focus { border-color: #eb1712; box-shadow: 0 0 0 3px #eb171217; }
+.authsubmit { min-height: 48px; margin-top: 5px; }
+.authswitch { width: 100%; margin-top: 18px; border: 0; background: transparent; color: #c91612; font-weight: 700; font-size: 12px; }
+.autherror { margin: 0; padding: 10px; border-radius: 8px; background: #fff0ef; color: #a52d28; white-space: pre-line; font-size: 12px; }
 .sidebar nav button {
   min-height: 42px;
   border: 0;
@@ -1011,6 +1044,7 @@ body {
     overflow-x: auto;
     box-shadow: 0 -8px 24px #102d2a2b;
   }
+  .mobile-controls-wrap { display: block; }
   .mobile-camp-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(86px, auto) 48px;
@@ -1077,6 +1111,11 @@ body {
     line-height: 1;
     padding: 6px 3px;
   }
+  .mobile-account { margin: 8px 12px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: white; display: flex; align-items: center; gap: 7px; }
+  .mobile-account > span { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+  .mobile-account b { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-account small { color: #7a817f; font-size: 9px; }
+  .mobile-account button { border: 0; border-radius: 7px; background: #fff0ef; color: #d91410; min-height: 36px; padding: 6px 8px; display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; }
   .mobile-nav button.on {
     background: #eb1712;
     color: white;
@@ -1269,12 +1308,14 @@ main > header small {
 }
 .score b,
 .roomcard > header > svg,
-.exportgrid a > svg:last-child {
+.exportgrid a > svg:last-child,
+.exportgrid > button > svg:last-child {
   color: #eb1712;
 }
 .stat i,
 .roomicon,
-.exportgrid a > svg:first-child {
+.exportgrid a > svg:first-child,
+.exportgrid > button > svg:first-child {
   background: #fff0ef;
   color: #d91410;
 }

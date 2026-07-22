@@ -13,12 +13,14 @@ import {
   X,
   Trash2,
 } from "lucide-react";
-import { API, type Camp, type Camper, type Dashboard, type ImportResult, request } from "./api";
+import { download, getAuthToken, setAuthToken, type AuthUser, type Camp, type Camper, type Dashboard, type ImportResult, request } from "./api";
 import { Avatar } from "./components/Avatar";
 import { AppHeader } from "./components/AppHeader";
 import { AppDialog, NoticePopup, type DialogState } from "./components/Feedback";
 import { MobileCampControls, MobileNavigation, Sidebar, type View } from "./components/Navigation";
+import { AuthScreen } from "./components/AuthScreen";
 export default function App() {
+  const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
   const [camps, setCamps] = useState<Camp[]>([]),
     [campId, setCampId] = useState(""),
     [data, setData] = useState<Dashboard | null>(null),
@@ -34,6 +36,13 @@ export default function App() {
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const confirmPopup = (title: string, message: string, confirmLabel = "Confirm", cancelLabel = "Cancel") => new Promise<boolean>((resolve) => setDialog({ title, message, confirmLabel, cancelLabel, resolve: (value) => resolve(value === true) }));
   const promptPopup = (title: string, message: string, input: string) => new Promise<string | null>((resolve) => setDialog({ title, message, input, confirmLabel: "Save", cancelLabel: "Cancel", resolve: (value) => resolve(typeof value === "string" ? value : null) }));
+  useEffect(() => {
+    const expired = () => setUser(null);
+    window.addEventListener("vault-auth-expired", expired);
+    if (!getAuthToken()) setUser(null);
+    else request<AuthUser>("/auth/me").then(setUser).catch(() => { setAuthToken(null); setUser(null); });
+    return () => window.removeEventListener("vault-auth-expired", expired);
+  }, []);
   const load = async (id = campId) => {
     if (!id) return;
     setBusy(true);
@@ -47,13 +56,15 @@ export default function App() {
     }
   };
   useEffect(() => {
+    if (!user) return;
+    setCamps([]); setCampId(""); setData(null);
     request<Camp[]>("/camps")
       .then((x) => {
         setCamps(x);
         if (x[0]) setCampId(x[0].id);
       })
       .catch((e) => setError(e.message));
-  }, []);
+  }, [user]);
   useEffect(() => {
     if (campId) load(campId);
   }, [campId]);
@@ -95,12 +106,17 @@ export default function App() {
         : [],
     [q, data],
   );
+  const logout = async () => { try { await request<void>("/auth/logout", {method:"POST"}); } catch {} setAuthToken(null); setUser(null); setCamps([]); setCampId(""); setData(null); };
+  const joinCamp = async () => { const code=(await promptPopup("Join a camp","Enter the code shared by the camp owner.",""))?.trim(); if(!code)return; try { const joined=await request<Camp>("/auth/join-camp",{method:"POST",body:JSON.stringify({code})}); const next=await request<Camp[]>("/camps"); setCamps(next); setCampId(joined.id); } catch(e){setError((e as Error).message)} };
+  if (user === undefined) return <div className="authpage"><RefreshCw className="spin"/></div>;
+  if (!user) return <AuthScreen onAuth={setUser}/>;
+  const navigationProps={view,setView,camps,campId,setCampId,deleteCamp,newCamp:()=>setModal("camp" as const),userName:user.name,joinCode:data?.camp.joinCode,joinCamp,logout};
   return (
     <div className="app">
-      <Sidebar view={view} setView={setView} camps={camps} campId={campId} setCampId={setCampId} deleteCamp={deleteCamp} newCamp={()=>setModal("camp")}/>
+      <Sidebar {...navigationProps}/>
       <main>
         <AppHeader campName={data?.camp.name} view={view} query={q} setQuery={setQ} results={search||[]} selectCamper={(camper)=>{setView("Campers");setQ(camper.name)}} importFile={()=>setModal("import")} canImport={!!campId}/>
-        <MobileCampControls camps={camps} campId={campId} setCampId={setCampId} deleteCamp={deleteCamp} newCamp={()=>setModal("camp")}/>
+        <MobileCampControls {...navigationProps}/>
         <section className="content">
           {!data ? (
             <Empty onCreate={() => setModal("camp")} />
@@ -192,7 +208,7 @@ export default function App() {
                   }
                 />
               )}{" "}
-              {view === "Exports" && <Exports id={campId} />}
+              {view === "Exports" && <Exports id={campId} campName={data.camp.name} onError={setError}/>}
             </>
           )}
         </section>
@@ -797,21 +813,22 @@ function Review({
     </div>
   );
 }
-function Exports({ id }: { id: string }) {
+function Exports({ id, campName, onError }: { id: string; campName:string; onError:(message:string)=>void }) {
+  const get=(kind:"rooms"|"groups")=>download(`/camps/${id}/exports/${kind}.pdf`,`${campName}-${kind}.pdf`).catch(e=>onError((e as Error).message));
   return (
     <div className="exportgrid">
-      <a href={`${API}/camps/${id}/exports/rooms.pdf`}>
+      <button onClick={()=>get("rooms")}>
         <Home />
         <b>Room assignment PDF</b>
         <span>Members, ages, capacity and page numbers</span>
         <FileDown />
-      </a>
-      <a href={`${API}/camps/${id}/exports/groups.pdf`}>
+      </button>
+      <button onClick={()=>get("groups")}>
         <MessageCircle />
         <b>Discussion group PDF</b>
         <span>Balanced groups and average ages</span>
         <FileDown />
-      </a>
+      </button>
     </div>
   );
 }
