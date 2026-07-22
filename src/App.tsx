@@ -36,6 +36,7 @@ export default function App() {
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const confirmPopup = (title: string, message: string, confirmLabel = "Confirm", cancelLabel = "Cancel") => new Promise<boolean>((resolve) => setDialog({ title, message, confirmLabel, cancelLabel, resolve: (value) => resolve(value === true) }));
   const promptPopup = (title: string, message: string, input: string) => new Promise<string | null>((resolve) => setDialog({ title, message, input, confirmLabel: "Save", cancelLabel: "Cancel", resolve: (value) => resolve(typeof value === "string" ? value : null) }));
+  const codePopup = () => new Promise<string | null>((resolve) => setDialog({ title: "Join a camp", message: "Enter the 8-character code shared by the camp owner.", input: "", codeLength: 8, confirmLabel: "Join camp", cancelLabel: "Cancel", resolve: (value) => resolve(typeof value === "string" ? value : null) }));
   useEffect(() => {
     const expired = () => setUser(null);
     window.addEventListener("vault-auth-expired", expired);
@@ -107,7 +108,7 @@ export default function App() {
     [q, data],
   );
   const logout = async () => { try { await request<void>("/auth/logout", {method:"POST"}); } catch {} setAuthToken(null); setUser(null); setCamps([]); setCampId(""); setData(null); };
-  const joinCamp = async () => { const code=(await promptPopup("Join a camp","Enter the code shared by the camp owner.",""))?.trim(); if(!code)return; try { const joined=await request<Camp>("/auth/join-camp",{method:"POST",body:JSON.stringify({code})}); const next=await request<Camp[]>("/camps"); setCamps(next); setCampId(joined.id); } catch(e){setError((e as Error).message)} };
+  const joinCamp = async () => { const code=(await codePopup())?.trim().toUpperCase(); if(!code)return; try { const joined=await request<Camp>("/auth/join-camp",{method:"POST",body:JSON.stringify({code})}); const next=await request<Camp[]>("/camps"); setCamps(next); setCampId(joined.id); } catch(e){setError((e as Error).message)} };
   if (user === undefined) return <div className="authpage"><RefreshCw className="spin"/></div>;
   if (!user) return <AuthScreen onAuth={setUser}/>;
   const navigationProps={view,setView,camps,campId,setCampId,deleteCamp,newCamp:()=>setModal("camp" as const),userName:user.name,joinCode:data?.camp.joinCode,joinCamp,logout};
