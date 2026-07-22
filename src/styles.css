@@ -604,6 +604,22 @@ td:first-child {
 .empty p {
   margin-bottom: 22px;
 }
+.emptyactions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.emptyactions button {
+  min-height: 42px;
+  padding: 10px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 9px;
+}
 .exportgrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

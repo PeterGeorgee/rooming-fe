@@ -12,6 +12,7 @@ import {
   MessageCircle,
   X,
   Trash2,
+  UserPlus,
 } from "lucide-react";
 import { download, getAuthToken, setAuthToken, type AuthUser, type Camp, type Camper, type CampLeader, type Dashboard, type ImportResult, request } from "./api";
 import { Avatar } from "./components/Avatar";
@@ -124,7 +125,7 @@ export default function App() {
         <MobileCampControls {...navigationProps}/>
         <section className="content">
           {!data ? (
-            <Empty onCreate={() => setModal("camp")} />
+            <Empty onCreate={() => setModal("camp")} onJoin={joinCamp}/>
           ) : (
             <>
               {view === "Overview" && (
@@ -405,16 +406,22 @@ function CaringLeaderModal({group,leaders,close,save}:{group:Dashboard["caringGr
   const eligible=leaders.filter(leader=>leader.gender===group.gender);const [leaderId,setLeaderId]=useState(group.leaderId||eligible.find(leader=>leader.name.toLowerCase()===group.leaderName.toLowerCase())?.id||"");
   return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(leaderId)}}><button type="button" className="close" onClick={close}><X/></button><h2>Edit Caring leader</h2><p className="modalintro">Choose the leader responsible for {group.name}.</p><label>Leader<select required value={leaderId} onChange={e=>setLeaderId(e.target.value)}><option value="">Select leader</option>{eligible.map(leader=><option key={leader.id} value={leader.id}>{leader.name}</option>)}</select></label><button className="primary">Save leader</button></form></div>;
 }
-function Empty({ onCreate }: { onCreate: () => void }) {
+function Empty({ onCreate,onJoin }: { onCreate: () => void;onJoin:()=>void }) {
   return (
     <div className="empty">
       <img className="emptylogo" src="/vault-hq-logo.png" alt="Vault HQ" />
       <h2>Start your first camp</h2>
-      <p>Create a camp, configure rooms, then import your Excel camper list.</p>
-      <button className="primary" onClick={onCreate}>
-        <Plus size={16} />
-        Create camp
-      </button>
+      <p>Create a new camp or join one using the code shared by its owner.</p>
+      <div className="emptyactions">
+        <button className="primary" onClick={onCreate}>
+          <Plus size={16} />
+          Create camp
+        </button>
+        <button className="secondary" onClick={onJoin}>
+          <UserPlus size={16}/>
+          Join a camp
+        </button>
+      </div>
     </div>
   );
 }
