@@ -884,24 +884,18 @@ body {
 .codeinputs { width: 100%; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: clamp(4px, 1.2vw, 8px); }
 .modal .codeinputs input { min-width: 0; height: 52px; padding: 0; text-align: center; border-width: 2px; border-radius: 9px; color: #171a1f; font-size: clamp(17px, 3vw, 22px); font-weight: 800; text-transform: uppercase; caret-color: #eb1712; }
 .modal .codeinputs input:focus { border-color: #eb1712; outline: 0; box-shadow: 0 0 0 3px #eb171218; }
-.accountbox {
-  margin-top: auto;
-  padding: 11px;
-  border: 1px solid #424750;
-  border-radius: 9px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.accountbox b { color: white; font-size: 11px; overflow-wrap: anywhere; }
-.accountbox small { color: #b9bec7; font-size: 9px; }
-.accountbox strong { color: #ff7772; letter-spacing: .6px; }
-.accountbox div { display: flex; gap: 5px; }
-.accountbox button { flex: 1; border: 1px solid #555b64; border-radius: 6px; background: #292d34; color: #e5e7eb; padding: 7px 5px; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 9px; }
+.sidebar-user { margin: -16px 5px 18px; padding: 9px 10px; border-left: 3px solid #eb1712; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-user small { color: #aeb5bf; font-size: 7px; letter-spacing: .8px; text-transform: uppercase; }
+.sidebar-user b { color: white; font-size: 12px; overflow-wrap: anywhere; }
+.sidebar-actions { margin-top: auto; padding-top: 10px; border-top: 1px solid #3d424a; display: grid; gap: 7px; }
+.sidebar-actions button { min-height: 38px; border: 1px solid #555b64; border-radius: 7px; background: #292d34; color: #e5e7eb; padding: 8px 10px; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 10px; font-weight: 700; }
+.sidebar-actions button:hover { border-color: #747b85; background: #343941; color: white; }
+.sidebar-actions .createcamp { border-color: #eb1712; background: #eb1712; color: white; box-shadow: 0 5px 14px #eb17122e; }
+.sidebar-actions .createcamp:hover { border-color: #ff5a54; background: #cc100c; }
+.sidebar-actions .signout { background: transparent; color: #b9bec7; }
 .camp-share-code { margin: -12px 5px 12px; padding: 9px; border: 1px solid #5b6069; border-radius: 8px; background: #171a1f; display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .camp-share-code small { color: #b9bec7; text-transform: uppercase; letter-spacing: .7px; font-size: 7px; }
 .camp-share-code strong { color: white; font-size: 17px; letter-spacing: 2.2px; line-height: 1.2; }
-.app > aside .accountbox + .newcamp { margin-top: 4px; }
 .mobile-controls-wrap { display: none; }
 .authpage { min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom)); display: grid; place-items: center; background: radial-gradient(circle at top, #fff 0, #fff2f1 38%, #f6f5f2 75%); }
 .authcard { width: min(440px, 100%); background: white; border: 1px solid var(--line); border-radius: 20px; padding: clamp(24px, 6vw, 42px); box-shadow: 0 24px 70px #171a1f1a; }
