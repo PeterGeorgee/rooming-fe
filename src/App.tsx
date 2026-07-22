@@ -853,7 +853,7 @@ function Review({
 }
 function Exports({ id, campName, onError }: { id: string; campName:string; onError:(message:string)=>void }) {
   const [downloading,setDownloading]=useState(false);
-  const get=async(kind:"rooms"|"groups")=>{setDownloading(true);try{await download(`/camps/${id}/exports/${kind}.pdf`,`${campName}-${kind}.pdf`)}catch(e){onError((e as Error).message)}finally{setDownloading(false)}};
+  const get=async(kind:"rooms"|"groups"|"caring")=>{setDownloading(true);try{await download(`/camps/${id}/exports/${kind}.pdf`,`${campName}-${kind}.pdf`)}catch(e){onError((e as Error).message)}finally{setDownloading(false)}};
   return (
     <><div className="exportgrid">
       <button onClick={()=>get("rooms")}>
@@ -866,6 +866,12 @@ function Exports({ id, campName, onError }: { id: string; campName:string; onErr
         <MessageCircle />
         <b>Discussion group PDF</b>
         <span>Balanced groups and average ages</span>
+        <FileDown />
+      </button>
+      <button onClick={()=>get("caring")}>
+        <HandHeart />
+        <b>Caring groups PDF</b>
+        <span>Leaders, members, genders and average ages</span>
         <FileDown />
       </button>
     </div>{downloading&&<BrandLoader overlay label="Preparing your PDF..."/>}</>
