@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { AlertTriangle, Check, Copy, FileDown, Home, LayoutDashboard, LogOut, MessageCircle, Plus, Trash2, Upload, UserPlus, Users } from "lucide-react";
+import { AlertTriangle, Check, Copy, FileDown, HandHeart, Home, LayoutDashboard, LogOut, MessageCircle, Plus, Trash2, Upload, UserPlus, Users } from "lucide-react";
 import type { Camp } from "../api";
 
-export type View = "Overview" | "Campers" | "Rooms" | "Discussion groups" | "Review" | "Exports";
-const items = [["Overview",LayoutDashboard],["Campers",Users],["Rooms",Home],["Discussion groups",MessageCircle],["Review",AlertTriangle],["Exports",FileDown]] as const;
+export type View = "Overview" | "Campers" | "Rooms" | "Discussion groups" | "Caring" | "Review" | "Exports";
+const items = [["Overview",LayoutDashboard],["Campers",Users],["Rooms",Home],["Discussion groups",MessageCircle],["Caring",HandHeart],["Review",AlertTriangle],["Exports",FileDown]] as const;
 
 type Props={view:View;setView:(view:View)=>void;camps:Camp[];campId:string;setCampId:(id:string)=>void;deleteCamp:()=>void;newCamp:()=>void;userName:string;joinCode?:string;joinCamp:()=>void;logout:()=>void;importFile:()=>void;canImport:boolean};
 function ShareCode({code,mobile=false}:{code:string;mobile?:boolean}){const[copied,setCopied]=useState(false);const value=code.toUpperCase();const copy=async()=>{await navigator.clipboard.writeText(value);setCopied(true);window.setTimeout(()=>setCopied(false),1800)};return <div className={`camp-share-code${mobile?" mobile-camp-code":""}`}><small>{mobile?"Share code for selected camp":"Share this camp code"}</small><span><strong>{value}</strong><button type="button" onClick={copy} aria-label={copied?"Camp code copied":"Copy camp code"}>{copied?<Check size={16}/>:<Copy size={16}/>}</button></span></div>}

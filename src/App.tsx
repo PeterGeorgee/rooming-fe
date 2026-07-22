@@ -8,6 +8,7 @@ import {
   Plus,
   AlertTriangle,
   Heart,
+  HandHeart,
   MessageCircle,
   X,
   Trash2,
@@ -28,11 +29,12 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [modal, setModal] = useState<
-      "camp" | "room" | "import" | "groups" | "assignRooms" | null
+      "camp" | "room" | "import" | "groups" | "caring" | "assignRooms" | null
     >(null),
     [q, setQ] = useState("");
   const [leaderEdit, setLeaderEdit] = useState<Dashboard["rooms"][number] | null>(null);
   const [groupLeaderEdit, setGroupLeaderEdit] = useState<Dashboard["groups"][number] | null>(null);
+  const [caringLeaderEdit, setCaringLeaderEdit] = useState<Dashboard["caringGroups"][number] | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const confirmPopup = (title: string, message: string, confirmLabel = "Confirm", cancelLabel = "Cancel") => new Promise<boolean>((resolve) => setDialog({ title, message, confirmLabel, cancelLabel, resolve: (value) => resolve(value === true) }));
   const promptPopup = (title: string, message: string, input: string) => new Promise<string | null>((resolve) => setDialog({ title, message, input, confirmLabel: "Save", cancelLabel: "Cancel", resolve: (value) => resolve(typeof value === "string" ? value : null) }));
@@ -198,6 +200,9 @@ export default function App() {
               {view === "Discussion groups" && (
                 <Groups d={data} generate={() => setModal("groups")} editLeaders={setGroupLeaderEdit} />
               )}{" "}
+              {view === "Caring" && (
+                <Caring d={data} generate={() => setModal("caring")} editLeader={setCaringLeaderEdit} move={(camperId,caringGroupId)=>act(()=>request(`/campers/${camperId}/assignment`,{method:"PATCH",body:JSON.stringify({caringGroupId})}))}/>
+              )}{" "}
               {view === "Review" && (
                 <Review
                   d={data}
@@ -244,6 +249,11 @@ export default function App() {
                 });
               else if (modal === "groups")
                 await request(`/camps/${campId}/assign/groups`, {
+                  method: "POST",
+                  body: JSON.stringify(body),
+                });
+              else if (modal === "caring")
+                await request(`/camps/${campId}/assign/caring`, {
                   method: "POST",
                   body: JSON.stringify(body),
                 });
@@ -309,6 +319,9 @@ export default function App() {
           }}
         />
       )}
+      {caringLeaderEdit && (
+        <CaringLeaderModal group={caringLeaderEdit} close={()=>setCaringLeaderEdit(null)} save={async(name)=>{await act(()=>request(`/caring-groups/${caringLeaderEdit.id}/leader`,{method:"PATCH",body:JSON.stringify({name})}));setCaringLeaderEdit(null)}}/>
+      )}
       {error && <NoticePopup message={error} close={() => setError("")} />}
       {dialog && <AppDialog dialog={dialog} close={(value) => { dialog.resolve(value); setDialog(null); }} />}
       {busy && (
@@ -371,6 +384,10 @@ function RoomLeaderModal({
 function GroupLeaderModal({group,close,save}:{group:Dashboard["groups"][number];close:()=>void;save:(leaders:string[])=>Promise<void>}) {
   const [leaders,setLeaders]=useState(group.leaders);
   return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(leaders.map(x=>x.trim()))}}><button type="button" className="close" onClick={close}><X/></button><h2>Group leaders</h2><p className="modalintro">Add one or more leaders for {group.name}.</p>{leaders.map((leader,index)=><div className="leaderrow" key={index}><input required placeholder={`Leader ${index+1} name`} value={leader} onChange={e=>{const next=[...leaders];next[index]=e.target.value;setLeaders(next)}}/><button type="button" className="removeroom" onClick={()=>setLeaders(leaders.filter((_,i)=>i!==index))}><Trash2 size={14}/>Remove</button></div>)}<button type="button" className="secondary" onClick={()=>setLeaders([...leaders,""])}><Plus size={14}/>Add leader</button><button className="primary">Save leaders</button></form></div>;
+}
+function CaringLeaderModal({group,close,save}:{group:Dashboard["caringGroups"][number];close:()=>void;save:(name:string)=>Promise<void>}) {
+  const [name,setName]=useState(group.leaderName);
+  return <div className="backdrop" onMouseDown={close}><form className="modal" onMouseDown={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();save(name.trim())}}><button type="button" className="close" onClick={close}><X/></button><h2>Edit Caring leader</h2><p className="modalintro">Update the leader responsible for {group.name}.</p><label>Leader name<input required value={name} onChange={e=>setName(e.target.value)}/></label><button className="primary">Save leader</button></form></div>;
 }
 function Empty({ onCreate }: { onCreate: () => void }) {
   return (
@@ -765,6 +782,20 @@ function Groups({ d, generate, editLeaders }: { d: Dashboard; generate: () => vo
     </>
   );
 }
+function Caring({d,generate,editLeader,move}:{d:Dashboard;generate:()=>void;editLeader:(group:Dashboard["caringGroups"][number])=>void;move:(camperId:string,caringGroupId:string)=>void}) {
+  const caringGroups=d.caringGroups||[];
+  const generated=caringGroups.length>0;
+  const unassigned=d.campers.filter(camper=>!camper.caringGroupId);
+  const member=(camper:Camper,current="")=><div className="person" key={camper.id}><Avatar c={camper}/><span><b>{camper.name}</b><small>{camper.room||camper.group||`Age ${camper.age}`}</small></span><select value={current} aria-label={`Assign ${camper.name} to a Caring group`} onChange={e=>move(camper.id,e.target.value)}><option value="" disabled>Select group</option>{caringGroups.filter(candidate=>candidate.gender===camper.gender).map(candidate=><option key={candidate.id} value={candidate.id}>{candidate.name} ({candidate.occupancy})</option>)}</select></div>;
+  return <>
+    <div className="caringintro"><div><span><HandHeart size={21}/></span><h2>Caring groups</h2><p>Every camper has one gender-matched leader. Groups are balanced and follow room assignments first, then discussion groups.</p></div><button className="primary" onClick={generate}><Shuffle size={15}/>{generated?"Regenerate Caring":"Generate Caring"}</button></div>
+    {!generated?<div className="empty caringempty"><HandHeart size={42}/><h2>No Caring groups yet</h2><p>Add the male and female leaders who will care for campers, then generate balanced groups.</p><button className="primary" onClick={generate}><Plus size={16}/>Add Caring leaders</button></div>:
+    <div className="cards caringcards">
+      {unassigned.length>0&&<article className="roomcard scrollable caringcard unassignedcard"><header><div><small>Needs attention</small><h3>Unassigned campers</h3><p>{unassigned.length} campers need a Caring leader</p></div><Users/></header><div className="roommembers">{unassigned.map(camper=>member(camper))}</div></article>}
+      {caringGroups.map(group=><article className="roomcard scrollable caringcard" key={group.id}><header><div><small>{group.gender==="FEMALE"?"Female":"Male"} Caring</small><h3>{group.name}</h3><p>{group.occupancy} campers | Average age {group.averageAge||"-"}</p><p className="caringleader"><b>Leader:</b> {group.leaderName}</p><button className="rename" onClick={()=>editLeader(group)}>Edit leader</button></div><HandHeart/></header><div className="roommembers">{group.campers.map(camper=>member(camper,group.id))}</div></article>)}
+    </div>}
+  </>;
+}
 function Review({
   d,
   resolve,
@@ -857,6 +888,8 @@ function Modal({
       genderSeparated: false,
       girlLeaders: [],
       boyLeaders: [],
+      femaleCaringLeaders: [],
+      maleCaringLeaders: [],
     }),
     [file, setFile] = useState<File>();
   const setLeaderCount = (gender: "FEMALE" | "MALE", count: number) => {
@@ -929,6 +962,7 @@ function Modal({
       </section>
     );
   };
+  const caringLeaderSection=(gender:"FEMALE"|"MALE",title:string)=>{const key=gender==="FEMALE"?"femaleCaringLeaders":"maleCaringLeaders";const leaders:string[]=f[key];return <section className="leadersection"><h3>{title}</h3><label>Number of leaders<input min="0" max="100" type="number" value={leaders.length} onChange={e=>{const count=Math.max(0,+e.target.value);setF({...f,[key]:Array.from({length:count},(_,index)=>leaders[index]||"")})}}/></label>{leaders.map((name,index)=><label key={index}>Leader {index+1}<input required placeholder={`${gender==="FEMALE"?"Female":"Male"} leader ${index+1} name`} value={name} onChange={e=>{const next=[...leaders];next[index]=e.target.value;setF({...f,[key]:next})}}/></label>)}</section>};
   return (
     <div className="backdrop" onMouseDown={close}>
       <form
@@ -941,6 +975,8 @@ function Modal({
               ? file
               : type === "assignRooms"
                 ? { leaders: [...f.girlLeaders, ...f.boyLeaders] }
+                : type === "caring"
+                  ? {leaders:[...f.femaleCaringLeaders.map((name:string)=>({name,gender:"FEMALE"})),...f.maleCaringLeaders.map((name:string)=>({name,gender:"MALE"}))]}
                 : f,
           );
         }}
@@ -955,6 +991,8 @@ function Modal({
               ? "Add a room"
               : type === "groups"
                 ? "Generate discussion groups"
+                : type === "caring"
+                  ? "Generate Caring groups"
                 : type === "assignRooms"
                   ? "Assign room leaders"
                   : "Import campers"}
@@ -1067,6 +1105,7 @@ function Modal({
             </label>
           </>
         )}
+        {type === "caring" && <div className="leaderbody"><p className="modalintro">Enter every Caring leader. One balanced, gender-matched camper group will be created for each leader.</p>{caringLeaderSection("FEMALE","Female leaders")}{caringLeaderSection("MALE","Male leaders")}</div>}
         {type === "import" && (
           <label className="drop">
             <Upload />
@@ -1083,7 +1122,7 @@ function Modal({
             />
           </label>
         )}
-        <button className="primary" disabled={type === "import" && !file}>
+        <button className="primary" disabled={(type === "import" && !file)||(type === "caring"&&f.femaleCaringLeaders.length+f.maleCaringLeaders.length===0)}>
           Save and continue
         </button>
       </form>
