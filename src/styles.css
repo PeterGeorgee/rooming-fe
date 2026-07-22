@@ -733,6 +733,26 @@ td:first-child {
   font: 700 16px Georgia;
   margin: 0;
 }
+.leadersectionhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.selectallleaders {
+  border: 1px solid #efaaa7;
+  border-radius: 7px;
+  background: #fff8f7;
+  color: #d91410;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.selectallleaders:hover {
+  border-color: #eb1712;
+  background: #fff0ef;
+}
 .modal h2 {
   font: 700 22px Georgia;
   margin: 0 0 6px;

@@ -970,7 +970,15 @@ function Modal({
       </section>
     );
   };
-  const caringLeaderSection=(gender:"FEMALE"|"MALE",title:string)=>{const eligible=leaders.filter(leader=>leader.gender===gender);return <section className="leadersection"><h3>{title}</h3>{eligible.length===0?<p className="modalintro">No {title.toLowerCase()} are available. Add them from the Leaders tab.</p>:eligible.map(leader=><label className="leaderchoice" key={leader.id}><input type="checkbox" checked={f.caringLeaderIds.includes(leader.id)} onChange={e=>setF({...f,caringLeaderIds:e.target.checked?[...f.caringLeaderIds,leader.id]:f.caringLeaderIds.filter((id:string)=>id!==leader.id)})}/><span>{leader.name}</span></label>)}</section>};
+  const caringLeaderSection=(gender:"FEMALE"|"MALE",title:string)=>{
+    const eligible=leaders.filter(leader=>leader.gender===gender);
+    const eligibleIds=eligible.map(leader=>leader.id);
+    const allSelected=eligibleIds.length>0&&eligibleIds.every(id=>f.caringLeaderIds.includes(id));
+    const toggleAll=()=>setF({...f,caringLeaderIds:allSelected
+      ? f.caringLeaderIds.filter((id:string)=>!eligibleIds.includes(id))
+      : Array.from(new Set([...f.caringLeaderIds,...eligibleIds]))});
+    return <section className="leadersection"><div className="leadersectionhead"><h3>{title}</h3>{eligible.length>0&&<button type="button" className="selectallleaders" onClick={toggleAll}>{allSelected?"Clear all":"Select all"}</button>}</div>{eligible.length===0?<p className="modalintro">No {title.toLowerCase()} are available. Add them from the Leaders tab.</p>:eligible.map(leader=><label className="leaderchoice" key={leader.id}><input type="checkbox" checked={f.caringLeaderIds.includes(leader.id)} onChange={e=>setF({...f,caringLeaderIds:e.target.checked?[...f.caringLeaderIds,leader.id]:f.caringLeaderIds.filter((id:string)=>id!==leader.id)})}/><span>{leader.name}</span></label>)}</section>;
+  };
   return (
     <div className="backdrop" onMouseDown={close}>
       <form
