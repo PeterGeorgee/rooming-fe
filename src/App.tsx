@@ -111,12 +111,12 @@ export default function App() {
   const joinCamp = async () => { const code=(await codePopup())?.trim().toUpperCase(); if(!code)return; try { const joined=await request<Camp>("/auth/join-camp",{method:"POST",body:JSON.stringify({code})}); const next=await request<Camp[]>("/camps"); setCamps(next); setCampId(joined.id); } catch(e){setError((e as Error).message)} };
   if (user === undefined) return <div className="authpage"><RefreshCw className="spin"/></div>;
   if (!user) return <AuthScreen onAuth={setUser}/>;
-  const navigationProps={view,setView,camps,campId,setCampId,deleteCamp,newCamp:()=>setModal("camp" as const),userName:user.name,joinCode:data?.camp.joinCode,joinCamp,logout};
+  const navigationProps={view,setView,camps,campId,setCampId,deleteCamp,newCamp:()=>setModal("camp" as const),userName:user.name,joinCode:data?.camp.joinCode,joinCamp,logout,importFile:()=>setModal("import" as const),canImport:!!campId};
   return (
     <div className="app">
       <Sidebar {...navigationProps}/>
       <main>
-        <AppHeader campName={data?.camp.name} view={view} query={q} setQuery={setQ} results={search||[]} selectCamper={(camper)=>{setView("Campers");setQ(camper.name)}} importFile={()=>setModal("import")} canImport={!!campId}/>
+        <AppHeader campName={data?.camp.name} view={view} query={q} setQuery={setQ} results={search||[]} selectCamper={(camper)=>{setView("Campers");setQ(camper.name)}} importFile={()=>setModal("import")} canImport={!!campId} userName={user.name} joinCamp={joinCamp} logout={logout}/>
         <MobileCampControls {...navigationProps}/>
         <section className="content">
           {!data ? (

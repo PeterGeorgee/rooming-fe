@@ -22,6 +22,9 @@ textarea {
 .mobile-header-logo {
   display: none;
 }
+.mobile-header-account {
+  display: none;
+}
 button,
 a {
   cursor: pointer;
@@ -1041,6 +1044,34 @@ body {
   main > header > .primary {
     min-height: 44px;
   }
+  main > header > .header-import {
+    display: none;
+  }
+  .mobile-header-account {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    min-width: 0;
+  }
+  .mobile-header-account b {
+    max-width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .mobile-header-account button {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid #efcfcc;
+    border-radius: 10px;
+    background: #fff8f7;
+    color: #d91410;
+    display: grid;
+    place-items: center;
+  }
   .search {
     grid-column: 1 / -1;
     grid-row: 2;
@@ -1069,6 +1100,8 @@ body {
     box-shadow: 0 -8px 24px #102d2a2b;
   }
   .mobile-controls-wrap { display: block; }
+  .mobile-import-row { padding: 10px 12px 0; display: flex; justify-content: flex-end; }
+  .mobile-import-row .primary { width: 100%; min-height: 46px; }
   .mobile-camp-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(86px, auto) 48px;
