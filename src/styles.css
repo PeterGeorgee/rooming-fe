@@ -397,7 +397,26 @@ progress {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  flex-wrap: wrap;
   margin-bottom: 14px;
+}
+.toolbar-action {
+  width: auto;
+  min-height: 40px;
+  padding: 9px 14px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.toolbar-action svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
 }
 
 .leader-import {

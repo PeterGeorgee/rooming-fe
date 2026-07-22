@@ -657,7 +657,7 @@ function Rooms({
           <Shuffle size={15}/>
           {generated ? "Regenerate rooms" : "Generate rooms"}
         </button>
-        <button className="secondary" disabled={busy||d.rooms.every(room=>room.campers.length===0)} onClick={autoLeaders}>
+        <button className="secondary toolbar-action" disabled={busy||d.rooms.every(room=>room.campers.length===0)} onClick={autoLeaders}>
           <Users size={15}/>
           Auto assign leaders
         </button>
@@ -771,7 +771,7 @@ function Groups({ d, generate, autoLeaders, editLeaders }: { d: Dashboard; gener
           <Shuffle size={15} />
           Generate groups
         </button>
-        <button className="secondary" disabled={d.groups.length===0} onClick={autoLeaders}>
+        <button className="secondary toolbar-action" disabled={d.groups.length===0} onClick={autoLeaders}>
           <Users size={15}/>
           Auto assign leaders
         </button>
