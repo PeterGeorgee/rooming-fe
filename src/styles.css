@@ -19,6 +19,9 @@ select,
 textarea {
   font: inherit;
 }
+.mobile-header-logo {
+  display: none;
+}
 button,
 a {
   cursor: pointer;
@@ -923,7 +926,7 @@ body {
   .app > main {
     margin-left: 0;
     width: 100%;
-    padding-bottom: 78px;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
   }
   main > header {
     position: sticky;
@@ -931,7 +934,7 @@ body {
     z-index: 15;
     height: auto;
     min-height: 74px;
-    padding: 11px 14px;
+    padding: calc(11px + env(safe-area-inset-top)) 14px 11px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
@@ -939,6 +942,18 @@ body {
   main > header > div:first-child {
     margin-right: 0;
     min-width: 0;
+  }
+  .mobile-header-logo {
+    display: block;
+    width: 96px;
+    max-width: 34vw;
+    height: 27px;
+    object-fit: contain;
+    object-position: left center;
+    margin-bottom: 3px;
+  }
+  .header-camp-name {
+    display: none;
   }
   main > header h1 {
     font-size: 21px;
@@ -968,8 +983,9 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    height: 70px;
-    padding: 5px 6px max(5px, env(safe-area-inset-bottom));
+    min-height: calc(76px + env(safe-area-inset-bottom));
+    height: auto;
+    padding: 7px 6px calc(7px + env(safe-area-inset-bottom));
     background: #153d39;
     display: flex;
     overflow-x: auto;
@@ -1025,22 +1041,26 @@ body {
     place-items: center;
   }
   .mobile-nav button {
-    flex: 1 0 62px;
-    min-width: 62px;
+    flex: 1 0 56px;
+    min-width: 56px;
+    min-height: 58px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 14px;
     background: transparent;
     color: #b5c9c6;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    font-size: 8px;
+    gap: 4px;
+    font-size: 10px;
+    line-height: 1;
+    padding: 6px 3px;
   }
   .mobile-nav button.on {
-    background: #2a5651;
+    background: #eb1712;
     color: white;
+    box-shadow: 0 5px 14px #0000002e;
   }
   .hero {
     align-items: flex-start;
