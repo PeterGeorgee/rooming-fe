@@ -907,6 +907,11 @@ body {
 .authcard label { color: #515957; font-size: 12px; font-weight: 700; }
 .authcard input { display: block; width: 100%; min-height: 48px; margin-top: 6px; padding: 11px 13px; border: 1px solid #dcdedb; border-radius: 9px; outline: none; }
 .authcard input:focus { border-color: #eb1712; box-shadow: 0 0 0 3px #eb171217; }
+.passwordfield { display: block; position: relative; }
+.authcard .passwordfield input { padding-right: 50px; }
+.passwordfield button { position: absolute; right: 5px; top: 11px; width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #6b7372; }
+.passwordfield button:hover { background: #fff0ef; color: #d91410; }
+.passwordfield button:focus-visible { outline: 2px solid #eb1712; outline-offset: 1px; }
 .authsubmit { min-height: 48px; margin-top: 5px; }
 .authswitch { width: 100%; margin-top: 18px; border: 0; background: transparent; color: #c91612; font-weight: 700; font-size: 12px; }
 .autherror { margin: 0; padding: 10px; border-radius: 8px; background: #fff0ef; color: #a52d28; white-space: pre-line; font-size: 12px; }
