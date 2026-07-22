@@ -29,7 +29,7 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [modal, setModal] = useState<
-      "camp" | "room" | "import" | "leader" | "leaderImport" | "groups" | "caring" | "assignRooms" | null
+      "camp" | "room" | "import" | "leader" | "leaderImport" | "groups" | "groupAuto" | "caring" | "assignRooms" | null
     >(null),
     [q, setQ] = useState("");
   const [leaderEdit, setLeaderEdit] = useState<Dashboard["rooms"][number] | null>(null);
@@ -194,10 +194,11 @@ export default function App() {
                       }),
                     )
                   }
+                  autoLeaders={() => act(()=>request(`/camps/${campId}/rooms/leaders/auto`,{method:"POST"}))}
                 />
               )}{" "}
               {view === "Discussion groups" && (
-                <Groups d={data} generate={() => setModal("groups")} editLeaders={setGroupLeaderEdit} />
+                <Groups d={data} generate={() => setModal("groups")} autoLeaders={()=>setModal("groupAuto")} editLeaders={setGroupLeaderEdit} />
               )}{" "}
               {view === "Caring" && (
                 <Caring d={data} generate={() => setModal("caring")} editLeader={setCaringLeaderEdit} move={(camperId,caringGroupId)=>act(()=>request(`/campers/${camperId}/assignment`,{method:"PATCH",body:JSON.stringify({caringGroupId})}))}/>
@@ -249,6 +250,11 @@ export default function App() {
                 });
               else if (modal === "groups")
                 await request(`/camps/${campId}/assign/groups`, {
+                  method: "POST",
+                  body: JSON.stringify(body),
+                });
+              else if (modal === "groupAuto")
+                await request(`/camps/${campId}/groups/leaders/auto`, {
                   method: "POST",
                   body: JSON.stringify(body),
                 });
@@ -630,6 +636,7 @@ function Rooms({
   leader,
   busy,
   generate,
+  autoLeaders,
 }: {
   d: Dashboard;
   add: () => void;
@@ -639,6 +646,7 @@ function Rooms({
   leader: (room: Dashboard["rooms"][number]) => void;
   busy: boolean;
   generate: () => void;
+  autoLeaders: () => void;
 }) {
   const unassigned = d.campers.filter((camper) => !camper.roomId);
   const generated = d.campers.some((camper) => camper.roomId);
@@ -648,6 +656,10 @@ function Rooms({
         <button className="primary" disabled={busy} onClick={generate}>
           <Shuffle size={15}/>
           {generated ? "Regenerate rooms" : "Generate rooms"}
+        </button>
+        <button className="secondary" disabled={busy||d.rooms.every(room=>room.campers.length===0)} onClick={autoLeaders}>
+          <Users size={15}/>
+          Auto assign leaders
         </button>
         <button className="primary" onClick={add}>
           <Plus size={15} />
@@ -691,7 +703,7 @@ function Rooms({
                 </p>
                 {r.leaders.length > 0 && (
                   <p>
-                    <b>Leaders:</b> {r.leaders.map((leader) => `${leader.name} (sleeps in ${leader.sleepRoom})`).join(", ")}
+                    <b>Leaders:</b> {r.leaders.map((leader) => leader.sleepRoom?`${leader.name} (sleeps in ${leader.sleepRoom})`:leader.name).join(", ")}
                   </p>
                 )}
                 <div className="roomactions">
@@ -751,13 +763,17 @@ function Leaders({leaders,add,importFile,edit,changeGender,remove}:{leaders:(Cam
   const needsReview=leaders.filter(leader=>leader.genderAssumed).length;
   return <div className="panel"><div className="panelhead"><div><h3>Camp leaders</h3><p>{leaders.length} leaders available for Rooms, Discussion Groups, and Caring{needsReview>0&&` · ${needsReview} assumed gender${needsReview===1?"":"s"} need review`}</p></div><div className="assignmentactions"><button className="secondary leader-import" onClick={importFile}><Upload size={15}/>Import leaders</button><button className="primary" onClick={add}><Plus size={15}/>Add leader</button></div></div>{leaders.length===0?<div className="done">Add leaders individually or import a sheet with a <b>Name</b> column. Gender is optional and will be assumed when missing.</div>:<table className="leaderstable"><thead><tr><th>Leader</th><th>Gender</th><th>Actions</th></tr></thead><tbody>{leaders.map(leader=><tr key={leader.id}><td><span className={`avatar ${leader.gender==="FEMALE"?"pink":"green"}`}>{leader.name.split(/\s+/).map(part=>part[0]).join("").slice(0,2)}</span><b>{leader.name}</b>{leader.genderAssumed&&<span className="assumedgender">Assumed · needs review</span>}</td><td><div className="leadergender"><select value={leader.gender} onChange={e=>changeGender(leader,e.target.value as "MALE"|"FEMALE")}><option value="FEMALE">Female</option><option value="MALE">Male</option></select>{leader.genderAssumed&&<button className="rename" onClick={()=>changeGender(leader,leader.gender as "MALE"|"FEMALE")}>Confirm</button>}</div></td><td><div className="leaderactions"><button className="rename" onClick={()=>edit(leader)}>Rename</button><button className="deletecamper" onClick={()=>remove(leader)}><Trash2 size={14}/>Delete</button></div></td></tr>)}</tbody></table>}</div>;
 }
-function Groups({ d, generate, editLeaders }: { d: Dashboard; generate: () => void; editLeaders: (group: Dashboard["groups"][number]) => void }) {
+function Groups({ d, generate, autoLeaders, editLeaders }: { d: Dashboard; generate: () => void; autoLeaders:()=>void; editLeaders: (group: Dashboard["groups"][number]) => void }) {
   return (
     <>
       <div className="toolbar">
         <button className="primary" onClick={generate}>
           <Shuffle size={15} />
           Generate groups
+        </button>
+        <button className="secondary" disabled={d.groups.length===0} onClick={autoLeaders}>
+          <Users size={15}/>
+          Auto assign leaders
         </button>
       </div>
       <div className="cards">
@@ -904,6 +920,7 @@ function Modal({
       girlLeaders: [],
       boyLeaders: [],
       caringLeaderIds: [],
+      groupLeaderIds: [],
     }),
     [file, setFile] = useState<File>();
   const setLeaderCount = (gender: "FEMALE" | "MALE", count: number) => {
@@ -985,6 +1002,15 @@ function Modal({
       : Array.from(new Set([...f.caringLeaderIds,...eligibleIds]))});
     return <section className="leadersection"><div className="leadersectionhead"><h3>{title}</h3>{eligible.length>0&&<button type="button" className="selectallleaders" onClick={toggleAll}>{allSelected?"Clear all":"Select all"}</button>}</div>{eligible.length===0?<p className="modalintro">No {title.toLowerCase()} are available. Add them from the Leaders tab.</p>:eligible.map(leader=><label className="leaderchoice" key={leader.id}><input type="checkbox" checked={f.caringLeaderIds.includes(leader.id)} onChange={e=>setF({...f,caringLeaderIds:e.target.checked?[...f.caringLeaderIds,leader.id]:f.caringLeaderIds.filter((id:string)=>id!==leader.id)})}/><span>{leader.name}</span></label>)}</section>;
   };
+  const groupLeaderSection=(gender:"FEMALE"|"MALE",title:string)=>{
+    const eligible=leaders.filter(leader=>leader.gender===gender);
+    const eligibleIds=eligible.map(leader=>leader.id);
+    const allSelected=eligibleIds.length>0&&eligibleIds.every(id=>f.groupLeaderIds.includes(id));
+    const toggleAll=()=>setF({...f,groupLeaderIds:allSelected
+      ? f.groupLeaderIds.filter((id:string)=>!eligibleIds.includes(id))
+      : Array.from(new Set([...f.groupLeaderIds,...eligibleIds]))});
+    return <section className="leadersection"><div className="leadersectionhead"><h3>{title}</h3>{eligible.length>0&&<button type="button" className="selectallleaders" onClick={toggleAll}>{allSelected?"Clear all":"Select all"}</button>}</div>{eligible.length===0?<p className="modalintro">No {title.toLowerCase()} are available. Add them from the Leaders tab.</p>:eligible.map(leader=><label className="leaderchoice" key={leader.id}><input type="checkbox" checked={f.groupLeaderIds.includes(leader.id)} onChange={e=>setF({...f,groupLeaderIds:e.target.checked?[...f.groupLeaderIds,leader.id]:f.groupLeaderIds.filter((id:string)=>id!==leader.id)})}/><span>{leader.name}</span></label>)}</section>;
+  };
   return (
     <div className="backdrop" onMouseDown={close}>
       <form
@@ -997,6 +1023,8 @@ function Modal({
               ? file
               : type === "assignRooms"
                 ? { leaders: [...f.girlLeaders, ...f.boyLeaders] }
+                : type === "groupAuto"
+                  ? {leaderIds:f.groupLeaderIds}
                 : type === "caring"
                   ? {leaderIds:f.caringLeaderIds}
                 : f,
@@ -1017,6 +1045,8 @@ function Modal({
               ? "Add a room"
               : type === "groups"
                 ? "Generate discussion groups"
+                : type === "groupAuto"
+                  ? "Auto assign group leaders"
                 : type === "caring"
                   ? "Generate Caring groups"
                 : type === "assignRooms"
@@ -1133,6 +1163,7 @@ function Modal({
           </>
         )}
         {type === "caring" && <div className="leaderbody"><p className="modalintro">Select leaders from the Leaders tab. One balanced, gender-matched camper group will be created for each selected leader.</p>{caringLeaderSection("FEMALE","Female leaders")}{caringLeaderSection("MALE","Male leaders")}</div>}
+        {type === "groupAuto" && <div className="leaderbody"><p className="modalintro">Choose the available discussion-group leaders. Each selected leader will be assigned to only one group. Select at least one leader per generated group.</p>{groupLeaderSection("FEMALE","Female leaders")}{groupLeaderSection("MALE","Male leaders")}</div>}
         {(type === "import"||type==="leaderImport") && (
           <label className="drop">
             <Upload />
@@ -1148,7 +1179,7 @@ function Modal({
             />
           </label>
         )}
-        <button className="primary" disabled={((type === "import"||type==="leaderImport") && !file)||(type === "caring"&&f.caringLeaderIds.length===0)}>
+        <button className="primary" disabled={((type === "import"||type==="leaderImport") && !file)||(type === "caring"&&f.caringLeaderIds.length===0)||(type === "groupAuto"&&f.groupLeaderIds.length===0)}>
           Save and continue
         </button>
       </form>
