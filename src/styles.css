@@ -639,6 +639,26 @@ td:first-child {
 .dialogbackdrop {
   z-index: 110;
 }
+.deletecamper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid #efaaa7;
+  border-radius: 8px;
+  background: #fff8f7;
+  color: #b52f2a;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.deletecamper:hover {
+  border-color: #eb1712;
+  background: #fff0ef;
+  color: #d91410;
+}
 .alertmodal {
   width: min(430px, 100%);
   text-align: center;

@@ -139,6 +139,10 @@ export default function App() {
                       }),
                     )
                   }
+                  removeCamper={async (camper) => {
+                    if (await confirmPopup("Remove camper", `Remove ${camper.name}? This also removes the camper from their room, discussion group and preference matches.`, "Remove camper"))
+                      act(() => request(`/campers/${camper.id}`, { method: "DELETE" }));
+                  }}
                 />
               )}{" "}
               {view === "Rooms" && (
@@ -483,11 +487,13 @@ function Campers({
   q,
   infer,
   updateGender,
+  removeCamper,
 }: {
   d: Dashboard;
   q: string;
   infer: () => void;
   updateGender: (id: string, gender: "MALE" | "FEMALE") => void;
+  removeCamper: (camper: Camper) => void;
 }) {
   const cs =
     q.length > 1
@@ -518,6 +524,7 @@ function Campers({
             <th>Preferences</th>
             <th>Room</th>
             <th>Group</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -563,6 +570,11 @@ function Campers({
               </td>
               <td>{c.room || "Unassigned"}</td>
               <td>{c.group || "Unassigned"}</td>
+              <td>
+                <button className="deletecamper" onClick={() => removeCamper(c)} aria-label={`Remove ${c.name}`}>
+                  <Trash2 size={15}/><span>Remove</span>
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
