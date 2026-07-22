@@ -792,6 +792,60 @@ td:first-child {
   gap: 8px;
   font-size: 11px;
 }
+.brand-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  color: #4f5857;
+}
+.brand-loader.fullscreen {
+  min-height: 100dvh;
+  padding: max(30px, env(safe-area-inset-top)) 20px max(30px, env(safe-area-inset-bottom));
+  background: radial-gradient(circle at center, #fff 0, #fff5f4 48%, #f6f5f2 100%);
+}
+.brand-loader.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  padding: 24px;
+  background: #fffdfceb;
+  backdrop-filter: blur(5px);
+}
+.brand-loader-mark {
+  position: relative;
+  width: min(190px, 58vw);
+  height: 76px;
+  display: grid;
+  place-items: center;
+}
+.brand-loader-mark img {
+  display: block;
+  width: 150px;
+  max-width: calc(100% - 28px);
+  height: auto;
+}
+.brand-loader-mark span {
+  position: absolute;
+  inset: 0;
+  border: 3px solid #171a1f;
+  border-left-color: #eb1712;
+  border-bottom-color: #eb1712;
+  border-radius: 12px;
+  box-shadow: 0 7px 22px #eb171219;
+  animation: vault-frame-spin 1.25s cubic-bezier(.55,.1,.45,.9) infinite;
+}
+.brand-loader p {
+  margin: 0;
+  color: #596260;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+@keyframes vault-frame-spin {
+  to { transform: rotate(360deg); }
+}
 .spin {
   animation: spin 1s linear infinite;
 }

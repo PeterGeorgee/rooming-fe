@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { request, setAuthToken, type AuthResponse, type AuthUser } from "../api";
+import { BrandLoader } from "./BrandLoader";
 
 export function AuthScreen({ onAuth }: { onAuth: (user: AuthUser) => void }) {
   const [register, setRegister] = useState(false);
@@ -48,11 +49,12 @@ export function AuthScreen({ onAuth }: { onAuth: (user: AuthUser) => void }) {
               </button>
             </span>
           </label>
-          {error && <p className="autherror">{error}</p>}
+          {error && <p className="autherror" role="alert">{error}</p>}
           <button className="primary authsubmit" disabled={busy}>{register ? <UserPlus size={18} /> : <LogIn size={18} />} {busy ? "Please wait..." : register ? "Create account" : "Sign in"}</button>
         </form>
         <button className="authswitch" onClick={() => { setRegister(!register); setError(""); setShowPassword(false); }}>{register ? "Already have an account? Sign in" : "New to Vault HQ? Create an account"}</button>
       </section>
+      {busy && <BrandLoader overlay label={register ? "Creating your account..." : "Signing you in..."} />}
     </main>
   );
 }

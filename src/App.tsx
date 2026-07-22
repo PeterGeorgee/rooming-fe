@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Heart,
   MessageCircle,
-  RefreshCw,
   X,
   Trash2,
 } from "lucide-react";
@@ -19,6 +18,7 @@ import { AppHeader } from "./components/AppHeader";
 import { AppDialog, NoticePopup, type DialogState } from "./components/Feedback";
 import { MobileCampControls, MobileNavigation, Sidebar, type View } from "./components/Navigation";
 import { AuthScreen } from "./components/AuthScreen";
+import { BrandLoader } from "./components/BrandLoader";
 export default function App() {
   const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
   const [camps, setCamps] = useState<Camp[]>([]),
@@ -59,12 +59,14 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     setCamps([]); setCampId(""); setData(null);
+    setBusy(true);
     request<Camp[]>("/camps")
       .then((x) => {
         setCamps(x);
         if (x[0]) setCampId(x[0].id);
+        else setBusy(false);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => { setError(e.message); setBusy(false); });
   }, [user]);
   useEffect(() => {
     if (campId) load(campId);
@@ -109,7 +111,7 @@ export default function App() {
   );
   const logout = async () => { try { await request<void>("/auth/logout", {method:"POST"}); } catch {} setAuthToken(null); setUser(null); setCamps([]); setCampId(""); setData(null); };
   const joinCamp = async () => { const code=(await codePopup())?.trim().toUpperCase(); if(!code)return; try { const joined=await request<Camp>("/auth/join-camp",{method:"POST",body:JSON.stringify({code})}); const next=await request<Camp[]>("/camps"); setCamps(next); setCampId(joined.id); } catch(e){setError((e as Error).message)} };
-  if (user === undefined) return <div className="authpage"><RefreshCw className="spin"/></div>;
+  if (user === undefined) return <BrandLoader fullscreen label="Opening Vault HQ..."/>;
   if (!user) return <AuthScreen onAuth={setUser}/>;
   const navigationProps={view,setView,camps,campId,setCampId,deleteCamp,newCamp:()=>setModal("camp" as const),userName:user.name,joinCode:data?.camp.joinCode,joinCamp,logout,importFile:()=>setModal("import" as const),canImport:!!campId};
   return (
@@ -310,10 +312,7 @@ export default function App() {
       {error && <NoticePopup message={error} close={() => setError("")} />}
       {dialog && <AppDialog dialog={dialog} close={(value) => { dialog.resolve(value); setDialog(null); }} />}
       {busy && (
-        <div className="loading">
-          <RefreshCw className="spin" />
-          Saving changes...
-        </div>
+        <BrandLoader overlay label="Saving your changes..." />
       )}
     </div>
   );
@@ -815,9 +814,10 @@ function Review({
   );
 }
 function Exports({ id, campName, onError }: { id: string; campName:string; onError:(message:string)=>void }) {
-  const get=(kind:"rooms"|"groups")=>download(`/camps/${id}/exports/${kind}.pdf`,`${campName}-${kind}.pdf`).catch(e=>onError((e as Error).message));
+  const [downloading,setDownloading]=useState(false);
+  const get=async(kind:"rooms"|"groups")=>{setDownloading(true);try{await download(`/camps/${id}/exports/${kind}.pdf`,`${campName}-${kind}.pdf`)}catch(e){onError((e as Error).message)}finally{setDownloading(false)}};
   return (
-    <div className="exportgrid">
+    <><div className="exportgrid">
       <button onClick={()=>get("rooms")}>
         <Home />
         <b>Room assignment PDF</b>
@@ -830,7 +830,7 @@ function Exports({ id, campName, onError }: { id: string; campName:string; onErr
         <span>Balanced groups and average ages</span>
         <FileDown />
       </button>
-    </div>
+    </div>{downloading&&<BrandLoader overlay label="Preparing your PDF..."/>}</>
   );
 }
 function Modal({
