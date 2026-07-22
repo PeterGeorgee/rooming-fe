@@ -1163,7 +1163,7 @@ function Modal({
           </>
         )}
         {type === "caring" && <div className="leaderbody"><p className="modalintro">Select leaders from the Leaders tab. One balanced, gender-matched camper group will be created for each selected leader.</p>{caringLeaderSection("FEMALE","Female leaders")}{caringLeaderSection("MALE","Male leaders")}</div>}
-        {type === "groupAuto" && <div className="leaderbody"><p className="modalintro">Choose the available discussion-group leaders. Each selected leader will be assigned to only one group. Select at least one leader per generated group.</p>{groupLeaderSection("FEMALE","Female leaders")}{groupLeaderSection("MALE","Male leaders")}</div>}
+        {type === "groupAuto" && <div className="leaderbody"><p className="modalintro">Choose the available discussion-group leaders. Girls' groups receive only female leaders and boys' groups receive only male leaders. Each selected leader is assigned to one group, and each gender needs at least one leader per matching group.</p>{groupLeaderSection("FEMALE","Female leaders")}{groupLeaderSection("MALE","Male leaders")}</div>}
         {(type === "import"||type==="leaderImport") && (
           <label className="drop">
             <Upload />
