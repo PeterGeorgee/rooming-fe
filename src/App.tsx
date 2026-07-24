@@ -21,6 +21,7 @@ import { AppDialog, NoticePopup, type DialogState } from "./components/Feedback"
 import { MobileCampControls, MobileNavigation, Sidebar, type View } from "./components/Navigation";
 import { AuthScreen } from "./components/AuthScreen";
 import { BrandLoader } from "./components/BrandLoader";
+type ImportPreview={missingBirthdates:{key:string;name:string;row:number}[]};
 export default function App() {
   const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
   const [camps, setCamps] = useState<Camp[]>([]),
@@ -30,9 +31,10 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [modal, setModal] = useState<
-      "camp" | "room" | "import" | "leader" | "leaderImport" | "groups" | "groupAuto" | "caring" | "assignRooms" | null
+      "camp" | "room" | "import" | "importBirthdates" | "leader" | "leaderImport" | "groups" | "groupAuto" | "caring" | "assignRooms" | null
     >(null),
     [q, setQ] = useState("");
+  const [pendingImport,setPendingImport]=useState<{file:File;missingBirthdates:ImportPreview["missingBirthdates"]}|null>(null);
   const [leaderEdit, setLeaderEdit] = useState<Dashboard["rooms"][number] | null>(null);
   const [groupLeaderEdit, setGroupLeaderEdit] = useState<Dashboard["groups"][number] | null>(null);
   const [caringLeaderEdit, setCaringLeaderEdit] = useState<Dashboard["caringGroups"][number] | null>(null);
@@ -225,13 +227,16 @@ export default function App() {
       <MobileNavigation view={view} setView={setView}/>
       {modal && (
         <Modal
+          key={modal}
           type={modal}
           rooms={data?.rooms || []}
           leaders={data?.leaders || []}
           discussionGroups={data?.groups || []}
-          close={() => setModal(null)}
+          missingBirthdates={pendingImport?.missingBirthdates||[]}
+          close={() => {setModal(null);setPendingImport(null)}}
           submit={async (body) => {
             let imported: ImportResult | undefined;
+            let awaitingBirthdates=false;
             await act(async () => {
               if (modal === "camp") {
                 const c = await request<Camp>("/camps", {
@@ -268,15 +273,24 @@ export default function App() {
               else if (modal === "leader")
                 await request(`/camps/${campId}/leaders`,{method:"POST",body:JSON.stringify(body)});
               else if (modal === "leaderImport") {const f=new FormData();f.append("file",body as File);await request(`/camps/${campId}/leaders/import`,{method:"POST",body:f});}
-              else {
+              else if (modal === "import") {
                 const f = new FormData();
                 f.append("file", body as File);
+                const preview=await request<ImportPreview>(`/camps/${campId}/import/preview`,{method:"POST",body:f});
+                if(preview.missingBirthdates.length>0){setPendingImport({file:body as File,missingBirthdates:preview.missingBirthdates});awaitingBirthdates=true;setModal("importBirthdates");return;}
                 imported = await request<ImportResult>(`/camps/${campId}/import`, {
                   method: "POST",
                   body: f,
                 });
+              } else if(modal==="importBirthdates") {
+                const f=new FormData();
+                f.append("file",pendingImport!.file);
+                f.append("birthdates",JSON.stringify(body));
+                imported=await request<ImportResult>(`/camps/${campId}/import`,{method:"POST",body:f});
+                setPendingImport(null);
               }
             });
+            if(awaitingBirthdates)return;
             setModal(null);
             if (imported && imported.missingCampers.length > 0) {
               const visibleNames = imported.missingCampers.slice(0, 12).map((camper) => camper.name).join(", ");
@@ -909,6 +923,7 @@ function Modal({
   rooms,
   leaders,
   discussionGroups,
+  missingBirthdates,
   close,
   submit,
 }: {
@@ -916,6 +931,7 @@ function Modal({
   rooms: Dashboard["rooms"];
   leaders: CampLeader[];
   discussionGroups: Dashboard["groups"];
+  missingBirthdates: ImportPreview["missingBirthdates"];
   close: () => void;
   submit: (x: any) => Promise<void>;
 }) {
@@ -939,6 +955,7 @@ function Modal({
       boyLeaders: [],
       caringLeaderIds: [],
       groupLeaderIds: [],
+      birthdates: Object.fromEntries(missingBirthdates.map(item=>[item.key,""])),
     }),
     [file, setFile] = useState<File>();
   const setLeaderCount = (gender: "FEMALE" | "MALE", count: number) => {
@@ -1039,6 +1056,8 @@ function Modal({
           submit(
             type === "import"||type==="leaderImport"
               ? file
+              : type === "importBirthdates"
+                ? f.birthdates
               : type === "assignRooms"
                 ? { leaders: [...f.girlLeaders, ...f.boyLeaders] }
                 : type === "groupAuto"
@@ -1059,6 +1078,8 @@ function Modal({
               ? "Add leader"
             : type === "leaderImport"
               ? "Import leaders"
+            : type === "importBirthdates"
+              ? "Add missing birthdates"
             : type === "room"
               ? "Add a room"
               : type === "groups"
@@ -1189,6 +1210,7 @@ function Modal({
         )}
         {type === "caring" && <div className="leaderbody"><p className="modalintro">Select leaders from the Leaders tab. One balanced, gender-matched camper group will be created for each selected leader.</p>{caringLeaderSection("FEMALE","Female leaders")}{caringLeaderSection("MALE","Male leaders")}</div>}
         {type === "groupAuto" && <div className="leaderbody"><p className="modalintro">Choose the available discussion-group leaders. Girls' groups receive only female leaders and boys' groups receive only male leaders. Each selected leader is assigned to one group, and each gender needs at least one leader per matching group.</p>{groupLeaderSection("FEMALE","Female leaders")}{groupLeaderSection("MALE","Male leaders")}</div>}
+        {type === "importBirthdates"&&<div className="birthdatelist"><p className="modalintro">Enter the missing birthdates below. All other spreadsheet validation will continue when you save.</p>{missingBirthdates.map(item=><label key={item.key}>{item.name}<small>Spreadsheet row {item.row}</small><input required type="date" value={f.birthdates[item.key]||""} onChange={e=>setF({...f,birthdates:{...f.birthdates,[item.key]:e.target.value}})}/></label>)}</div>}
         {(type === "import"||type==="leaderImport") && (
           <label className="drop">
             <Upload />
@@ -1204,7 +1226,7 @@ function Modal({
             />
           </label>
         )}
-        <button className="primary" disabled={((type === "import"||type==="leaderImport") && !file)||(type === "caring"&&f.caringLeaderIds.length===0)||(type === "groupAuto"&&f.groupLeaderIds.length===0)}>
+        <button className="primary" disabled={((type === "import"||type==="leaderImport") && !file)||(type === "caring"&&f.caringLeaderIds.length===0)||(type === "groupAuto"&&f.groupLeaderIds.length===0)||(type==="importBirthdates"&&missingBirthdates.some(item=>!f.birthdates[item.key]))}>
           Save and continue
         </button>
       </form>
